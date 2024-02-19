@@ -27,7 +27,7 @@ class IPMI_BMC(BMC):
         impi_power_tag = 'Instantaneous power reading'
         result = await self.run_ipmi_command(IPMI_COMMAND.GET_DCMI_POWER)
         if not result.ok:
-            self.panic(IPMI_COMMAND.GET_DCMI_POWER, result)
+            self.panic(IPMI_COMMAND.GET_DCMI_POWER.value, result)
         else:
             return float(result.bmc_dict[impi_power_tag])
 
@@ -35,7 +35,7 @@ class IPMI_BMC(BMC):
     async def current_cap_level(self) -> float | None:
         result = await self.run_ipmi_command(IPMI_COMMAND.GET_DCMI_POWER_CAP)
         if not result.ok:
-            self.panic(IPMI_COMMAND.GET_DCMI_POWER, result)
+            self.panic(IPMI_COMMAND.GET_DCMI_POWER.value, result)
 
         if result.bmc_dict.get('Current Limit State') == 'No Active Power Limit':
             return None
@@ -54,7 +54,7 @@ class IPMI_BMC(BMC):
         print('activating capping')
         result = await self.run_ipmi_command(IPMI_COMMAND.ACTIVATE_CAPPING)
         if not result.ok:
-            self.panic(IPMI_COMMAND.ACTIVATE_CAPPING, result)
+            self.panic(IPMI_COMMAND.ACTIVATE_CAPPING.value, result)
 
     async def run_ipmi_command(self, command: IPMI_COMMAND) -> Result:
         command_args = f'{self.command_prefix} {command.value}'
@@ -67,7 +67,7 @@ class IPMI_BMC(BMC):
         stdout = asyncio.subprocess.PIPE
         stderr = asyncio.subprocess.PIPE
         proc = await asyncio.create_subprocess_exec(
-            program, command_args, stdout=stdout, stderr=stderr, env=env
+                program, command_args.split(), stdout=stdout, stderr=stderr, env=env
         )
         stdout, stderr = await proc.communicate()
         if stderr:
@@ -111,7 +111,7 @@ if __name__ == '__main__':
 
     async def main(args):
         bmc = IPMI_BMC(args.hostname, args.username, args.password, args.ipmitool)
-        # await bmc.activate_capping() 
+        # await bmc.activate_capping()
         print(await bmc.current_power)
 
 args = parse_args()
