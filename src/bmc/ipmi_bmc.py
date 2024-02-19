@@ -21,7 +21,6 @@ class IPMI_BMC(BMC):
         self.ipmitool = ipmitool_path
         self.command_prefix = f'-H {bmc_hostname} -U {bmc_username} -P {bmc_password}'
         print(f'ipmi prefix: {self.command_prefix}')
-        self.activate_capping()
 
     @property
     async def current_power(self) -> float:
@@ -58,7 +57,7 @@ class IPMI_BMC(BMC):
             self.panic(IPMI_COMMAND.ACTIVATE_CAPPING, result)
 
     async def run_ipmi_command(self, command: IPMI_COMMAND) -> Result:
-        command_args = self.command_prefix + command.value
+        command_args = f'{self.command_prefix} {command.value}'
         program = self.ipmitool
 
         print(f'running {program} {command_args} – from {command}')
@@ -112,6 +111,7 @@ if __name__ == '__main__':
 
     async def main(args):
         bmc = IPMI_BMC(args.hostname, args.username, args.password, args.ipmitool)
+        await bmc.activate_capping()
         print(await bmc.current_power)
 
 args = parse_args()
