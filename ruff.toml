@@ -1,0 +1,24 @@
+target-version = "py312"
+line-length = 90
+
+[lint]
+select = [
+    "E", 
+    "F",
+    "I",  # import sort
+    "B",  # flake8-bugbear
+    "SIM",# flake8-simplify
+    "UP", # pyupgrade
+    "D",  # pydocstyle
+]
+
+[lint.pydocstyle]
+convention = "google"
+
+[format]
+# Prefer single quotes over double quotes.
+quote-style = "single"
+# Use native line endings for all files
+line-ending = "native"
+# Enable reformatting of code snippets in docstrings.
+docstring-code-format = true
