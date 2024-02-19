@@ -16,13 +16,13 @@ class BMC(ABC):
         self.bmc_username = bmc_username
         self.bmc_password = bmc_password
 
-    @abstractmethod
     @property
+    @abstractmethod
     async def current_power(self) -> float:
         pass
 
-    @abstractmethod
     @property
+    @abstractmethod
     async def current_cap_level(self) -> float | None:
         pass
 
