@@ -96,14 +96,18 @@ if __name__ == '__main__':
         parser.add_argument('-U', '--username', required=True, help='BMC username')
         parser.add_argument('-P', '--password', required=True, help='BMC password')
         parser.add_argument(
-            '-i',
-            '--ipmitool',
-            default='/usr/bin/ipmitool',
-            help='Full path to the ipmitool executable',
+                '-i',
+                '--ipmitool',
+                default='/usr/bin/ipmitool',
+                help='Full path to the ipmitool executable',
         )
 
         return parser.parse_args()
 
-    args = parse_args()
-    bmc = IPMI_BMC(args.hostname, args.username, args.password, args.ipmitool)
-    print(bmc.current_power)
+
+    async def main(args):
+        bmc = PMI_BMC(args.hostname, args.username, args.password, args.ipmitool)
+        print(await bmc.current_power)
+
+args = parse_args()
+asyncio.run(main(args))
