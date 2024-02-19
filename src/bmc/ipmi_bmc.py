@@ -20,6 +20,7 @@ class IPMI_BMC(BMC):
         super().__init__(bmc_hostname, bmc_username, bmc_password)
         self.ipmitool = ipmitool_path
         self.command_prefix = f'-H {bmc_hostname} -U {bmc_username} -P {bmc_password}'
+        print(f'ipmi prefix: {self.command_prefix}')
         self.activate_capping()
 
     @property
@@ -51,6 +52,7 @@ class IPMI_BMC(BMC):
             self.panic(set_cap_cmd, result)
 
     async def activate_capping(self):
+        print('activating capping')
         result = await self.run_ipmi_command(IPMI_COMMAND.ACTIVATE_CAPPING)
         if not result.ok:
             self.panic(IPMI_COMMAND.ACTIVATE_CAPPING, result)
@@ -58,6 +60,9 @@ class IPMI_BMC(BMC):
     async def run_ipmi_command(self, command: IPMI_COMMAND) -> Result:
         command_args = self.command_prefix + command.value
         program = self.ipmitool
+
+        print(f'running {program} {command_args} – from {command}')
+
         # LANG must be set to 'en_US' to parse the output
         env = {'LANG': 'en_US.UTF-8'}
         stdout = asyncio.subprocess.PIPE
@@ -67,14 +72,14 @@ class IPMI_BMC(BMC):
         )
         stdout, stderr = await proc.communicate()
         if stderr:
-            return Result(OK=False, stdout=stdout, stderr=stderr, args=command_args)
+            return Result(ok=False, stdout=stdout, stderr=stderr, args=command_args)
         else:
             ipmi_fields = {
                 f[0].strip(): f[1].strip()
                 for f in [line.split(':') for line in stdout.splitlines()]
                 if len(f) == 2
             }
-            return Result(OK=True, bmc_dict=ipmi_fields)
+            return Result(ok=True, bmc_dict=ipmi_fields)
 
     def panic(self, command: str, result: Result):
         msg = f'{self.ipmitool} {self.command_prefix} {command} command failed\n'
