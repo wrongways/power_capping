@@ -106,7 +106,7 @@ if __name__ == '__main__':
 
 
     async def main(args):
-        bmc = PMI_BMC(args.hostname, args.username, args.password, args.ipmitool)
+        bmc = IPMI_BMC(args.hostname, args.username, args.password, args.ipmitool)
         print(await bmc.current_power)
 
 args = parse_args()
