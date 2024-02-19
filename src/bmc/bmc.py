@@ -4,10 +4,10 @@ from typing import NamedTuple
 
 class Result(NamedTuple):
     ok: bool
-    bmc_dict: {str: str}
     stdout: str
     stderr: str
     args: str
+    bmc_dict: {str: str} = {}
 
 
 class BMC(ABC):
