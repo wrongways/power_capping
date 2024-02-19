@@ -111,7 +111,7 @@ if __name__ == '__main__':
 
     async def main(args):
         bmc = IPMI_BMC(args.hostname, args.username, args.password, args.ipmitool)
-        # await bmc.activate_capping()
+        # await bmc.activate_capping() 
         print(await bmc.current_power)
 
 args = parse_args()
