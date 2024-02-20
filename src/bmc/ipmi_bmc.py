@@ -7,7 +7,7 @@ from bmc import BMC, Result
 
 class IPMI_COMMAND(str, Enum):
     GET_DCMI_POWER = 'dcmi power reading'
-    GET_DCMI_POWER_CAP = 'dcmi power get limit'
+    GET_DCMI_POWER_CAP = 'dcmi power get_limit'
     SET_DCMI_POWER_CAP = 'dcmi power set_limit limit'
     ACTIVATE_CAPPING = 'dcmi power activate'
 
