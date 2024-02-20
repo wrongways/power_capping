@@ -10,6 +10,7 @@ class IPMI_COMMAND(str, Enum):
     GET_DCMI_POWER_CAP = 'dcmi power get_limit'
     SET_DCMI_POWER_CAP = 'dcmi power set_limit limit'
     ACTIVATE_CAPPING = 'dcmi power activate'
+    DEACTIVATE_CAPPING = 'dcmi power deactivate'
 
 
 class IPMI_BMC(BMC):
@@ -55,6 +56,17 @@ class IPMI_BMC(BMC):
         result = await self.run_ipmi_command(IPMI_COMMAND.ACTIVATE_CAPPING.value)
         if not result.ok:
             self.panic(IPMI_COMMAND.ACTIVATE_CAPPING.value, result)
+
+    async def deactivate_capping(self):
+        print('deactivating capping')
+        result = await self.run_ipmi_command(IPMI_COMMAND.DEACTIVATE_CAPPING.value)
+        if not result.ok:
+            self.panic(IPMI_COMMAND.ACTIVATE_CAPPING.value, result)
+
+    @property
+    async def capping_is_active(self) -> bool:
+        cap_level = await self.current_cap_level
+        return cap_level is not None
 
     async def run_ipmi_command(self, command: str) -> Result:
         command_args = f'{self.command_prefix} {command}'
