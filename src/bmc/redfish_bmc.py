@@ -1,5 +1,6 @@
 import argparse
 import asyncio
+import json
 
 import aiohttp
 
@@ -60,12 +61,18 @@ class RedfishBMC(BMC):
                             f'Failed to establish redfish session: {r.headers} {json_body}'
                     )
 
+                print(json.dumps(json_body, sort_keys=True, indent=2))
                 # Chassis are held under the '@odata.id' key in the 'Members' array
                 paths = [member.get('@odata.id') for member in json_body.get('Members')]
                 known_boards = {'motherboard', 'self', '1'}
+                print('Motherboards')
+                for path in paths:
+                    print(path)
+
                 for path in paths:
                     if path.lower() in known_boards:
                         self.motherboard_path = f'{chassis_endpoint}/{path}'
+                        print(f'Using motherboard {path} at {self.motherboard_path}')
                         break
 
     @property
@@ -77,6 +84,7 @@ class RedfishBMC(BMC):
         """
         motherboard_endpoint = f'{self.motherboard_path}/Power'
         headers = {'X-Auth-Token': self.token}
+        print(f'Connecting to {motherboard_endpoint}')
         async with aiohttp.ClientSession() as session:
             async with session.get(motherboard_endpoint, headers=headers, ssl=False) as r:
                 json_body = await r.json()
