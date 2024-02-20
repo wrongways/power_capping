@@ -73,7 +73,7 @@ class RedfishBMC(BMC):
                 # Identify the motherboard - take the first one found
                 for path in paths:
                     # Get the last element of path with Path().name
-                    chassis_name = Path(path)
+                    chassis_name = str(Path(path).name)
                     if chassis_name.lower() in known_boards:
                         self.motherboard_path = f'Chassis/{chassis_name}'
                         print(f'Using motherboard {path} at {self.motherboard_path}')
