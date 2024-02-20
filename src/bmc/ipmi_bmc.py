@@ -66,11 +66,11 @@ class IPMI_BMC(BMC):
         stdout = asyncio.subprocess.PIPE
         stderr = asyncio.subprocess.PIPE
         proc = await asyncio.create_subprocess_exec(
-                program, command_args, stdout=stdout, stderr=stderr, env=env
+                program, command_args.split(), stdout=stdout, stderr=stderr, env=env
         )
         stdout, stderr = await proc.communicate()
         if stderr:
-            return Result(ok=False, stdout=stdout.decode(), stderr=stderr.decode(), args=command_args)
+            return Result(ok=False, stdout=stdout.decode('ascii'), stderr=stderr.decode('ascii'), args=command_args)
         else:
             ipmi_fields = {
                 f[0].strip(): f[1].strip()
