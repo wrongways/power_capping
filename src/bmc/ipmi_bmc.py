@@ -114,7 +114,7 @@ if __name__ == '__main__':
         # await bmc.activate_capping()
         print(await bmc.current_power)
         print(await bmc.current_cap_level)
-
+        await bmc.set_cap_level(600)
 
     program_args = parse_args()
     asyncio.run(main(program_args))
