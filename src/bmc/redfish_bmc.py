@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import json
+from pathlib import Path
 
 import aiohttp
 
@@ -69,8 +70,10 @@ class RedfishBMC(BMC):
                 for path in paths:
                     print(path)
 
+                # Identify the motherboard - take the first one found
                 for path in paths:
-                    if path.lower() in known_boards:
+                    # Get the last element of path with Path().name
+                    if Path(path).name.lower() in known_boards:
                         self.motherboard_path = f'{chassis_endpoint}/{path}'
                         print(f'Using motherboard {path} at {self.motherboard_path}')
                         break
