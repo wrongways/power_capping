@@ -114,6 +114,7 @@ if __name__ == '__main__':
         bmc = RedfishBMC(args.hostname, args.username, args.password)
         print('Connecting')
         await bmc.connect()
+        await bmc.identify_motherboard()
         power = await bmc.current_power
         print(f'Current power draw: {power}')
         print('Disconnecting')
