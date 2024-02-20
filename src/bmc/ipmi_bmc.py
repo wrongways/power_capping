@@ -66,7 +66,7 @@ class IPMI_BMC(BMC):
         stdout = asyncio.subprocess.PIPE
         stderr = asyncio.subprocess.PIPE
         proc = await asyncio.create_subprocess_exec(
-                program, command_args.split(), stdout=stdout, stderr=stderr, env=env
+                program, *command_args.split(), stdout=stdout, stderr=stderr, env=env
         )
         stdout, stderr = await proc.communicate()
         if stderr:
