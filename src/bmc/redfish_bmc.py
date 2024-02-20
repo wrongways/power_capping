@@ -35,8 +35,8 @@ class RedfishBMC(BMC):
         headers = {'X-Auth-Token': self.token}
         async with aiohttp.ClientSession() as session:
             async with session.delete(self.redfish_root + session_endpoint, headers=headers, ssl=False) as r:
-                json_body = await r.json()
-                print(json.dumps(json_body, sort_keys=True, indent=2))
+                response = await r.text()
+                print(response)
 
     @property
     async def current_power(self) -> int:
