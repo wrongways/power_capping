@@ -74,7 +74,7 @@ class IPMI_BMC(BMC):
         else:
             ipmi_fields = {
                 f[0].strip(): f[1].strip()
-                for f in [line.split(':') for line in stdout.splitlines()]
+                for f in [line.split(':') for line in stdout.decode('ascii').splitlines()]
                 if len(f) == 2
             }
             return Result(ok=True, bmc_dict=ipmi_fields)
