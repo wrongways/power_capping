@@ -25,7 +25,7 @@ class IPMI_BMC(BMC):
     @property
     async def current_power(self) -> float:
         impi_power_tag = 'Instantaneous power reading'
-        result = await self.run_ipmi_command(IPMI_COMMAND.GET_DCMI_POWER)
+        result = await self.run_ipmi_command(IPMI_COMMAND.GET_DCMI_POWER.value)
         if not result.ok:
             self.panic(IPMI_COMMAND.GET_DCMI_POWER.value, result)
         else:
@@ -33,7 +33,7 @@ class IPMI_BMC(BMC):
 
     @property
     async def current_cap_level(self) -> float | None:
-        result = await self.run_ipmi_command(IPMI_COMMAND.GET_DCMI_POWER_CAP)
+        result = await self.run_ipmi_command(IPMI_COMMAND.GET_DCMI_POWER_CAP.value)
         if not result.ok:
             self.panic(IPMI_COMMAND.GET_DCMI_POWER.value, result)
 
@@ -45,19 +45,19 @@ class IPMI_BMC(BMC):
             return float(cap_value)
 
     async def set_cap_level(self, new_cap_level: float):
-        set_cap_cmd = f'{IPMI_COMMAND.SET_DCMI_POWER_CAP} {new_cap_level}'
+        set_cap_cmd = f'{IPMI_COMMAND.SET_DCMI_POWER_CAP.value} {new_cap_level}'
         result = await self.run_ipmi_command(set_cap_cmd)
         if not result.ok:
             self.panic(set_cap_cmd, result)
 
     async def activate_capping(self):
         print('activating capping')
-        result = await self.run_ipmi_command(IPMI_COMMAND.ACTIVATE_CAPPING)
+        result = await self.run_ipmi_command(IPMI_COMMAND.ACTIVATE_CAPPING.value)
         if not result.ok:
             self.panic(IPMI_COMMAND.ACTIVATE_CAPPING.value, result)
 
-    async def run_ipmi_command(self, command: IPMI_COMMAND) -> Result:
-        command_args = f'{self.command_prefix} {command.value}'
+    async def run_ipmi_command(self, command: str) -> Result:
+        command_args = f'{self.command_prefix} {command}'
         program = self.ipmitool
 
         print(f'running {program} {command_args} – from {command}')
@@ -67,11 +67,11 @@ class IPMI_BMC(BMC):
         stdout = asyncio.subprocess.PIPE
         stderr = asyncio.subprocess.PIPE
         proc = await asyncio.create_subprocess_exec(
-                program, command_args.split(), stdout=stdout, stderr=stderr, env=env
+                program, command_args, stdout=stdout, stderr=stderr, env=env
         )
         stdout, stderr = await proc.communicate()
         if stderr:
-            return Result(ok=False, stdout=stdout, stderr=stderr, args=command_args)
+            return Result(ok=False, stdout=stdout.decode(), stderr=stderr.decode(), args=command_args)
         else:
             ipmi_fields = {
                 f[0].strip(): f[1].strip()
