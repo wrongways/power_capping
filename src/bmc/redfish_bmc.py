@@ -23,8 +23,9 @@ class RedfishBMC(BMC):
             async with session.post(self.redfish_root + session_endpoint, json=credentials, ssl=False) as r:
                 print(f'Response status code: {r.status}')
                 json_body = await r.json()
-                print(f'X-Auth-Token: {r.headers.get("X-Auth-Token")}')
-                print(f'Headers: {json.dumps(r.headers, sort_keys=True, indent=2)}')
+                self.token = r.headers.get("X-Auth-Token")
+                print(f'X-Auth-Token: {self.token}')
+                print(f'Headers: {r.headers}')
                 print(json.dumps(json_body, sort_keys=True, indent=2))
 
                 self.session_id = json_body.get('Id')
@@ -66,7 +67,9 @@ if __name__ == '__main__':
 
     async def main(args):
         bmc = RedfishBMC(args.hostname, args.username, args.password)
+        print('Connecting')
         await bmc.connect()
+        print('Disconnecting')
         await bmc.disconnect()
 
     program_args = parse_args()
