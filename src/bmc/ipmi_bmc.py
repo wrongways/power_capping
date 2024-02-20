@@ -22,16 +22,17 @@ class IPMI_BMC(BMC):
         print(f'ipmi prefix: {self.command_prefix}')
 
     @property
-    async def current_power(self) -> float:
+    async def current_power(self) -> int:
         impi_power_tag = 'Instantaneous power reading'
         result = await self.run_ipmi_command(IPMI_COMMAND.GET_DCMI_POWER.value)
         if not result.ok:
             self.panic(IPMI_COMMAND.GET_DCMI_POWER.value, result)
         else:
-            return float(result.bmc_dict[impi_power_tag])
+            # Value comes back as "300 Watts" - just need the integer part
+            return int(result.bmc_dict[impi_power_tag].split()[0])
 
     @property
-    async def current_cap_level(self) -> float | None:
+    async def current_cap_level(self) -> int | None:
         result = await self.run_ipmi_command(IPMI_COMMAND.GET_DCMI_POWER_CAP.value)
         if not result.ok:
             self.panic(IPMI_COMMAND.GET_DCMI_POWER.value, result)
@@ -43,7 +44,7 @@ class IPMI_BMC(BMC):
             cap_value, _ = power_limit_string.split()
             return float(cap_value)
 
-    async def set_cap_level(self, new_cap_level: float):
+    async def set_cap_level(self, new_cap_level: int):
         set_cap_cmd = f'{IPMI_COMMAND.SET_DCMI_POWER_CAP.value} {new_cap_level}'
         result = await self.run_ipmi_command(set_cap_cmd)
         if not result.ok:
