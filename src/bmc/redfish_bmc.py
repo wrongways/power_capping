@@ -21,9 +21,11 @@ class RedfishBMC(BMC):
         credentials = {"UserName": self.bmc_username, "Password": self.bmc_password}
         async with aiohttp.ClientSession() as session:
             async with session.post(self.redfish_root + session_endpoint, json=credentials, ssl=False) as r:
+                print(f'Response status code: {r.status}')
                 json_body = await r.json()
-                print(f'X-Auth-Token: {json_body["headers"]["X-Auth-Token"]}')
-                print(f'Headers: {json_body["headers"]}')
+                print(f'X-Auth-Token: {json_body.get("headers", {}).get("X-Auth-Token")}')
+                print(f'Headers: {json_body.get("headers", )}')
+                print(json.dumps(json_body, sort_keys=True, indent=2))
 
                 self.session_id = json_body.get('Id')
 
