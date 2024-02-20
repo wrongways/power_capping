@@ -75,7 +75,7 @@ class RedfishBMC(BMC):
 
         Returns: Power draw in Watts
         """
-        motherboard_endpoint = f'{self.motherboard_path}/Power}
+        motherboard_endpoint = f'{self.motherboard_path}/Power'
         headers = {'X-Auth-Token': self.token}
         async with aiohttp.ClientSession() as session:
             async with session.get(motherboard_endpoint, headers=headers, ssl=False) as r:
