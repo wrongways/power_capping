@@ -28,7 +28,7 @@ class IPMI_BMC(BMC):
         if not result.ok:
             self.panic(IPMI_COMMAND.GET_DCMI_POWER.value, result)
         else:
-            # Value comes back as "300 Watts" - just need the integer part
+            # Value comes back as “300 Watts” - just need the integer part
             return int(result.bmc_dict[impi_power_tag].split()[0])
 
     @property
@@ -42,7 +42,7 @@ class IPMI_BMC(BMC):
         else:
             power_limit_string: str = result.bmc_dict.get('Power Limit')
             cap_value, _ = power_limit_string.split()
-            return float(cap_value)
+            return int(cap_value)
 
     async def set_cap_level(self, new_cap_level: int):
         set_cap_cmd = f'{IPMI_COMMAND.SET_DCMI_POWER_CAP.value} {new_cap_level}'
@@ -60,7 +60,7 @@ class IPMI_BMC(BMC):
         command_args = f'{self.command_prefix} {command}'
         program = self.ipmitool
 
-        print(f'running {program} {command_args} – from {command}')
+        print(f'running {program} {command_args}')
 
         # LANG must be set to 'en_US' to parse the output
         env = {'LANG': 'en_US.UTF-8'}
@@ -113,6 +113,8 @@ if __name__ == '__main__':
         bmc = IPMI_BMC(args.hostname, args.username, args.password, args.ipmitool)
         # await bmc.activate_capping()
         print(await bmc.current_power)
+        print(await bmc.current_cap_level)
 
-args = parse_args()
-asyncio.run(main(args))
+
+    program_args = parse_args()
+    asyncio.run(main(program_args))
