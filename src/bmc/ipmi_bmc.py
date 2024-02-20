@@ -13,14 +13,13 @@ class IPMI_COMMAND(str, Enum):
     DEACTIVATE_CAPPING = 'dcmi power deactivate'
 
 
-class IPMI_BMC(BMC):
+class IpmiBMC(BMC):
     def __init__(
         self, bmc_hostname: str, bmc_username: str, bmc_password: str, ipmitool_path: str
     ):
         super().__init__(bmc_hostname, bmc_username, bmc_password)
         self.ipmitool = ipmitool_path
         self.command_prefix = f'-H {bmc_hostname} -U {bmc_username} -P {bmc_password}'
-        print(f'ipmi prefix: {self.command_prefix}')
 
     @property
     async def current_power(self) -> int:
@@ -122,7 +121,7 @@ if __name__ == '__main__':
 
 
     async def main(args):
-        bmc = IPMI_BMC(args.hostname, args.username, args.password, args.ipmitool)
+        bmc = IpmiBMC(args.hostname, args.username, args.password, args.ipmitool)
         # await bmc.activate_capping()
         print(await bmc.current_power)
         print(await bmc.current_cap_level)

@@ -18,16 +18,16 @@ class BMC(ABC):
 
     @property
     @abstractmethod
-    async def current_power(self) -> float:
+    async def current_power(self) -> int:
         pass
 
     @property
     @abstractmethod
-    async def current_cap_level(self) -> float | None:
+    async def current_cap_level(self) -> int | None:
         pass
 
     @abstractmethod
-    async def set_cap_level(self, new_cap_level: float | None):
+    async def set_cap_level(self, new_cap_level: int):
         pass
 
     async def deactivate_capping(self):
