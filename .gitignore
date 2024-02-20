@@ -5,4 +5,5 @@ lib/
 __pycache__/
 .ruff_cache/
 pyvenv.cfg
+.venv/
 .DS_Store/
