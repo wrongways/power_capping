@@ -1,5 +1,5 @@
 target-version = "py312"
-line-length = 90
+line-length = 99
 
 [lint]
 select = [
