@@ -15,7 +15,7 @@ class RedfishBMC(BMC):
         super().__init__(bmc_hostname, bmc_username, bmc_password)
         self.token = ''
         self.session_id = None
-        self.motherboard_path = None  # includes self.redfish_root
+        self.motherboard_path = None  # Chassis/{board name}
         self.redfish_root = f'https://{bmc_hostname}{REDFISH_ROOT}'
 
     async def connect(self):
@@ -73,8 +73,9 @@ class RedfishBMC(BMC):
                 # Identify the motherboard - take the first one found
                 for path in paths:
                     # Get the last element of path with Path().name
-                    if Path(path).name.lower() in known_boards:
-                        self.motherboard_path = f'{chassis_endpoint}/{path}'
+                    chassis_name = Path(path)
+                    if chassis_name.lower() in known_boards:
+                        self.motherboard_path = f'Chassis/{chassis_name}'
                         print(f'Using motherboard {path} at {self.motherboard_path}')
                         break
 
@@ -85,11 +86,11 @@ class RedfishBMC(BMC):
 
         Returns: Power draw in Watts
         """
-        motherboard_endpoint = f'{self.motherboard_path}/Power'
+        power_endpoint = f'{self.redfish_root}/{self.motherboard_path}/Power'
         headers = {'X-Auth-Token': self.token}
-        print(f'Connecting to {motherboard_endpoint}')
+        print(f'Connecting to {power_endpoint}')
         async with aiohttp.ClientSession() as session:
-            async with session.get(motherboard_endpoint, headers=headers, ssl=False) as r:
+            async with session.get(power_endpoint, headers=headers, ssl=False) as r:
                 json_body = await r.json()
                 if not (200 <= r.status < 300):
                     raise RuntimeError(
