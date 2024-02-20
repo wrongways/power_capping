@@ -20,7 +20,7 @@ class RedfishBMC(BMC):
         session_endpoint = '/SessionService/Sessions'
         credentials = {"UserName": self.bmc_username, "Password": self.bmc_password}
         async with aiohttp.ClientSession() as session:
-            async with session.post(self.redfish_root + session_endpoint, json=credentials) as r:
+            async with session.post(self.redfish_root + session_endpoint, json=credentials, ssl=False) as r:
                 json_body = await r.json()
                 print(f'X-Auth-Token: {json_body["headers"]["X-Auth-Token"]}')
                 print(f'Headers: {json_body["headers"]}')
@@ -31,7 +31,7 @@ class RedfishBMC(BMC):
         session_endpoint = f'/SessionService/Sessions/{self.session_id}'
         headers = {'X-Auth-Token': self.token}
         async with aiohttp.ClientSession() as session:
-            async with session.delete(self.redfish_root + session_endpoint, headers=headers) as r:
+            async with session.delete(self.redfish_root + session_endpoint, headers=headers, ssl=False) as r:
                 json_body = await r.json()
                 print(json.dumps(json_body, sort_keys=True, indent=2))
 
@@ -69,4 +69,3 @@ if __name__ == '__main__':
 
     program_args = parse_args()
     asyncio.run(main(program_args))
-    
