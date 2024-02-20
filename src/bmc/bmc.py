@@ -4,9 +4,9 @@ from typing import NamedTuple
 
 class Result(NamedTuple):
     ok: bool
-    stdout: str
-    stderr: str
-    args: str
+    stdout: str | None = None
+    stderr: str | None = None
+    args: str | None = None
     bmc_dict: {str: str} = {}
 
 
