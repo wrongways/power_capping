@@ -1,6 +1,5 @@
 import argparse
 import asyncio
-import json
 from enum import Enum
 
 from bmc import BMC, Result
@@ -81,16 +80,16 @@ class IPMI_BMC(BMC):
             return Result(ok=True, bmc_dict=ipmi_fields)
 
     def panic(self, command: str, result: Result):
-        msg = f'{self.ipmitool} {self.command_prefix} {command} command failed\n'
-        f'stderr: {result.stderr}\n'
-        f'stdout: {result.stdout}\n'
-        'bmc_dict:\n' + json.dumps(result.bmc_dict, indent=2, sort_keys=True)
+        msg = f'''{self.ipmitool} {self.command_prefix} {command} command failed\n
+        stderr: {result.stderr}\
+        stdout: {result.stdout}\
+        bmc_dict:\n' + json.dumps(result.bmc_dict, indent=2, sort_keys=True)
+        '''
         raise RuntimeError(msg)
 
 
 if __name__ == '__main__':
-
-    def parse_args():
+    def parse_args() -> argparse.Namespace:
         parser = argparse.ArgumentParser(
             prog='IPMI BMC Test tool',
             description='Runs some elementary tests against a bmc',
