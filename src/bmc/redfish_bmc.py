@@ -183,7 +183,7 @@ if __name__ == '__main__':
 
             print('Getting current cap level', end=' ')
             initial_cap_level = await bmc.current_cap_level
-            print(initial_cap_level)
+            print(f'Initial cap level: {initial_cap_level}')
 
             new_cap_level = initial_cap_level + 50
             print('Set power cap to', new_cap_level)
