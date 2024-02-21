@@ -69,9 +69,9 @@ class RedfishBMC(BMC):
                 print(json.dumps(json_body, sort_keys=True, indent=2))
                 # Chassis are held under the '@odata.id' key in the 'Members' array
                 paths = [member.get('@odata.id') for member in json_body.get('Members')]
-                self.chassis = [str(Path(path).name) for path in paths]
-                return self.chassis
-
+                all_chassis = [str(Path(path).name) for path in paths]
+                self.chassis = all_chassis
+                return all_chassis
 
     @chassis.setter
     def chassis(self, value):
@@ -134,7 +134,7 @@ if __name__ == '__main__':
         await bmc.connect()
         print('Chassis')
         all_chassis = await bmc.chassis
-        for chassis in all_chassis:
+        for chassis in await all_chassis:
             print(' -', chassis)
 
         power = await bmc.current_power
