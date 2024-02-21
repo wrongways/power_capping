@@ -53,22 +53,25 @@ class RedfishBMC(BMC):
         Returns list of chassis names, caches the result under self.chassis.
         """
 
-        if self._chassis is None:
-            chassis_endpoint = f'{self.redfish_root}/Chassis'
-            headers = {'X-Auth-Token': self.token}
-            async with aiohttp.ClientSession() as session:
-                async with session.get(chassis_endpoint, headers=headers, ssl=False) as r:
-                    json_body = await r.json()
-                    if not (200 <= r.status < 300):
-                        raise RuntimeError(
-                                f'Failed to establish redfish session: {r.headers} {json_body}'
-                        )
+        if self._chassis is not None:
+            return self._chassis
 
-                    print(json.dumps(json_body, sort_keys=True, indent=2))
-                    # Chassis are held under the '@odata.id' key in the 'Members' array
-                    paths = [member.get('@odata.id') for member in json_body.get('Members')]
-                    self.chassis = [str(Path(path).name) for path in paths]
-        return self._chassis
+        chassis_endpoint = f'{self.redfish_root}/Chassis'
+        headers = {'X-Auth-Token': self.token}
+        async with aiohttp.ClientSession() as session:
+            async with session.get(chassis_endpoint, headers=headers, ssl=False) as r:
+                json_body = await r.json()
+                if not (200 <= r.status < 300):
+                    raise RuntimeError(
+                            f'Failed to establish redfish session: {r.headers} {json_body}'
+                    )
+
+                print(json.dumps(json_body, sort_keys=True, indent=2))
+                # Chassis are held under the '@odata.id' key in the 'Members' array
+                paths = [member.get('@odata.id') for member in json_body.get('Members')]
+                self.chassis = [str(Path(path).name) for path in paths]
+                return self.chassis
+
 
     @chassis.setter
     def chassis(self, value):
