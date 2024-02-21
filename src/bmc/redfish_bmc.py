@@ -98,8 +98,8 @@ class RedfishBMC(BMC):
         power_endpoint = f'{self.redfish_root}/Chassis/{motherboard}/Power'
         headers = {'X-Auth-Token': self.token}
         print(f'Connecting to {power_endpoint}')
-        async with aiohttp.ClientSession(ssl=False, headers=headers) as session:
-            async with session.get(power_endpoint) as r:
+        async with aiohttp.ClientSession() as session:
+            async with session.get(power_endpoint, headers=headers, ssl=False) as r:
                 json_body = await r.json()
                 if not r.ok:
                     raise RuntimeError(
@@ -110,7 +110,27 @@ class RedfishBMC(BMC):
 
     @property
     async def current_cap_level(self) -> int | None:
-        return 0
+        print(f'Getting cap level')
+        motherboard = await self.motherboard
+        power_endpoint = f'{self.redfish_root}/Chassis/{motherboard}/Power'
+        print(f'Connecting to {power_endpoint}')
+        headers = {
+            'X-Auth-Token': self.token,
+        }
+        async with aiohttp.ClientSession() as session:
+            async with session.patch(power_endpoint, headers=headers, ssl=False) as r:
+                json_body = await r.json()
+                if not r.ok:
+                    raise RuntimeError(
+                            f'''\
+                            Failed to establish redfish session:
+                            Response headers: {r.headers}
+                            Response body:
+                            {json.dumps(json_body, sort_keys=True, indent=2)}
+                            '''
+                    )
+                print(f'\t{r.status=}\n\t{json.dumps(json_body, sort_keys=True, indent=2)}')
+                return int(json_body.get('PowerControl', [{}]).get('PowerLimit', {}).get('LimitInWatts', 0))
 
     async def set_cap_level(self, new_cap_level: int):
         print(f'Setting cap level to {new_cap_level}')
@@ -125,8 +145,8 @@ class RedfishBMC(BMC):
             'X-Auth-Token': self.token,
             'If-Match': '*'
         }
-        async with aiohttp.ClientSession(headers=headers) as session:
-            async with session.patch(power_endpoint, json=cap_dict, ssl=False) as r:
+        async with aiohttp.ClientSession() as session:
+            async with session.patch(power_endpoint, headers=headers, json=cap_dict, ssl=False) as r:
                 response = await r.text()
                 if not r.ok:
                     raise RuntimeError(
@@ -163,8 +183,23 @@ if __name__ == '__main__':
             power = await bmc.current_power
             print(f'Current power draw: {power}')
 
-            print('Set power cap')
-            await bmc.set_cap_level(550)
+            print('Getting current cap level', end=' ')
+            cap_level = await bmc.current_cap_level
+            print(cap_level)
+
+            print('Set power cap to', cap_level - 50)
+            await bmc.set_cap_level(cap_level - 50)
+
+            print('Getting current cap level', end=' ')
+            cap_level = await bmc.current_cap_level
+            print(cap_level)
+
+            print('Set power cap to', cap_level)
+            await bmc.set_cap_level(cap_level)
+
+            print('Getting current cap level', end=' ')
+            cap_level = await bmc.current_cap_level
+            print(cap_level)
 
         finally:
             print('Disconnecting')
