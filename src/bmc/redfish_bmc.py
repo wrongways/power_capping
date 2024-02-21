@@ -8,6 +8,7 @@ import aiohttp
 from bmc import BMC
 
 REDFISH_ROOT = '/redfish/v1'
+KNOWN_MOTHERBOARDS = {'motherboard', 'self', '1'}
 
 
 class RedfishBMC(BMC):
@@ -15,7 +16,7 @@ class RedfishBMC(BMC):
         super().__init__(bmc_hostname, bmc_username, bmc_password)
         self.token = ''
         self.session_id = None
-        self.motherboard_path = None  # Chassis/{board name}
+        self._chassis = None
         self.redfish_root = f'https://{bmc_hostname}{REDFISH_ROOT}'
 
     async def connect(self):
@@ -44,40 +45,41 @@ class RedfishBMC(BMC):
                 await r.text()
                 print(f'Disconnect status code: {r.status}')
 
-    async def identify_motherboard(self):
+    @property
+    async def chassis(self) -> [str]:
         """
-        Finds the redfish path to the motherboard.
+        Lists all chassis - Finds all the members under REDFISH_ROOT/Chassis.
 
-        Known motherboards are 'motherboard', 'self', and '1'.
-        GPU boards are not managed.
+        Returns list of chassis names, caches the result under self.chassis.
         """
 
-        chassis_endpoint = f'{self.redfish_root}/Chassis'
-        headers = {'X-Auth-Token': self.token}
-        async with aiohttp.ClientSession() as session:
-            async with session.get(chassis_endpoint, headers=headers, ssl=False) as r:
-                json_body = await r.json()
-                if not (200 <= r.status < 300):
-                    raise RuntimeError(
-                            f'Failed to establish redfish session: {r.headers} {json_body}'
-                    )
+        if self._chassis is None:
+            chassis_endpoint = f'{self.redfish_root}/Chassis'
+            headers = {'X-Auth-Token': self.token}
+            async with aiohttp.ClientSession() as session:
+                async with session.get(chassis_endpoint, headers=headers, ssl=False) as r:
+                    json_body = await r.json()
+                    if not (200 <= r.status < 300):
+                        raise RuntimeError(
+                                f'Failed to establish redfish session: {r.headers} {json_body}'
+                        )
 
-                print(json.dumps(json_body, sort_keys=True, indent=2))
-                # Chassis are held under the '@odata.id' key in the 'Members' array
-                paths = [member.get('@odata.id') for member in json_body.get('Members')]
-                known_boards = {'motherboard', 'self', '1'}
-                print('Motherboards')
-                for path in paths:
-                    print(path)
+                    print(json.dumps(json_body, sort_keys=True, indent=2))
+                    # Chassis are held under the '@odata.id' key in the 'Members' array
+                    paths = [member.get('@odata.id') for member in json_body.get('Members')]
+                    self.chassis = [str(Path(path).name) for path in paths]
+        return self._chassis
 
-                # Identify the motherboard - take the first one found
-                for path in paths:
-                    # Get the last element of path with Path().name
-                    chassis_name = str(Path(path).name)
-                    if chassis_name.lower() in known_boards:
-                        self.motherboard_path = f'Chassis/{chassis_name}'
-                        print(f'Using motherboard {path} at {self.motherboard_path}')
-                        break
+    @chassis.setter
+    def chassis(self, value):
+        self._chassis = value
+
+    @property
+    async def motherboard(self):
+        chassis = await self.chassis
+        for chassis in chassis:
+            if chassis in KNOWN_MOTHERBOARDS:
+                return chassis
 
     @property
     async def current_power(self) -> int:
@@ -86,7 +88,8 @@ class RedfishBMC(BMC):
 
         Returns: Power draw in Watts
         """
-        power_endpoint = f'{self.redfish_root}/{self.motherboard_path}/Power'
+        motherboard = await self.motherboard
+        power_endpoint = f'{self.redfish_root}/Chassis/{motherboard}/Power'
         headers = {'X-Auth-Token': self.token}
         print(f'Connecting to {power_endpoint}')
         async with aiohttp.ClientSession() as session:
@@ -126,7 +129,10 @@ if __name__ == '__main__':
         bmc = RedfishBMC(args.hostname, args.username, args.password)
         print('Connecting')
         await bmc.connect()
-        await bmc.identify_motherboard()
+        print('Chassis')
+        for chassis in await bmc.chassis:
+            print(' -', chassis)
+
         power = await bmc.current_power
         print(f'Current power draw: {power}')
         print('Disconnecting')
