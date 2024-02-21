@@ -127,10 +127,9 @@ class RedfishBMC(BMC):
                 response = await r.text()
                 if not r.ok:
                     raise RuntimeError(
-                            f'Failed to establish redfish session: {r.headers} {json_body}'
+                            f'Failed to establish redfish session: {r.headers} {response}'
                     )
                 print(f'\t{r.status=}\n\t{response=}')
-
 
     async def deactivate_capping(self):
         pass
