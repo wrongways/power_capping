@@ -127,7 +127,7 @@ class RedfishBMC(BMC):
                             {json.dumps(json_body, sort_keys=True, indent=2)}
                             '''
                     )
-                print(f'\t{r.status=}\n\t{json.dumps(json_body, sort_keys=True, indent=2)}')
+                print(f'\tResponse status: {r.status=}')
                 return int(json_body.get('PowerControl', [{}])[0].get('PowerLimit', {}).get('LimitInWatts', 0))
 
     async def set_cap_level(self, new_cap_level: int):
