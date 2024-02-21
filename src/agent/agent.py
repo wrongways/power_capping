@@ -98,8 +98,8 @@ class CappingAgent:
         await to_thread(self.launch_firestarter, **args)
         return web.json_response(None, status=HTTP_202_ACCEPTED)
 
-    def launch_firestarter(self, runtime_secs, pct_load=100, n_threads=None):
-        command_line = f'{self.firestarter_path} --quiet --timeout {runtime_secs} --load {pct_load}--threads {n_threads}'
+    def launch_firestarter(self, runtime_secs, pct_load=100, n_threads=0):
+        command_line = f'{self.firestarter_path} --quiet --timeout {runtime_secs} --load {pct_load} --threads {n_threads}'
         subprocess.run(command_line.split())
 
     def read_energy_path(self, path, read_max_energy=False):
