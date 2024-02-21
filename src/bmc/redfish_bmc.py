@@ -83,7 +83,7 @@ class RedfishBMC(BMC):
     async def motherboard(self):
         chassis = await self.chassis
         for chassis in chassis:
-            if chassis in KNOWN_MOTHERBOARDS:
+            if chassis.lower() in KNOWN_MOTHERBOARDS:
                 return chassis
 
     @property
