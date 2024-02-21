@@ -121,7 +121,10 @@ class RedfishBMC(BMC):
         }
         print(f'Connecting to {power_endpoint}')
         print(f'Patch data: {json.dumps(cap_dict, sort_keys=True, indent=2)}')
-        headers = {'X-Auth-Token': self.token}
+        headers = {
+            'X-Auth-Token': self.token,
+            'If-Match': '*'
+        }
         async with aiohttp.ClientSession(headers=headers) as session:
             async with session.patch(power_endpoint, json=cap_dict, ssl=False) as r:
                 response = await r.text()
