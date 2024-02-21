@@ -138,6 +138,10 @@ if __name__ == '__main__':
             for chassis in all_chassis:
                 print(' -', chassis)
 
+            all_chassis = await bmc.chassis
+            for chassis in all_chassis:
+                print(' -', chassis)
+                
             power = await bmc.current_power
             print(f'Current power draw: {power}')
         finally:
