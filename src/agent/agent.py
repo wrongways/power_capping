@@ -12,7 +12,7 @@ HTTP_202_ACCEPTED = 202
 
 
 class CappingAgent:
-    def __init__(self, firestarter_path: str):
+    def __init__(self, port_number: int, firestarter_path: str):
         """
         Params:
             firestarter_path: str - the filepath to the firestarter executable
@@ -40,7 +40,7 @@ class CappingAgent:
             web.get('/rapl_power', self.rapl_power),
             web.post('/firestarter', self.firestarter),
         ])
-        web.run_app(self.app())
+        web.run_app(self.app(), port=port_number)
 
     async def rapl_power(self, _request):
         """\
@@ -121,4 +121,4 @@ class CappingAgent:
 
 
 if __name__ == '__main__':
-    agent = CappingAgent(firestarter_path='/tmp/FIRESTARTER')
+    agent = CappingAgent(port_number=5432, firestarter_path='/tmp/FIRESTARTER')
