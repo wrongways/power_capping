@@ -133,7 +133,8 @@ if __name__ == '__main__':
         print('Connecting')
         await bmc.connect()
         print('Chassis')
-        for chassis in await bmc.chassis:
+        all_chassis = await bmc.chassis
+        for chassis in all_chassis:
             print(' -', chassis)
 
         power = await bmc.current_power
