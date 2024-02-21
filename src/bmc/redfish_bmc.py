@@ -98,8 +98,8 @@ class RedfishBMC(BMC):
         power_endpoint = f'{self.redfish_root}/Chassis/{motherboard}/Power'
         headers = {'X-Auth-Token': self.token}
         print(f'Connecting to {power_endpoint}')
-        async with aiohttp.ClientSession() as session:
-            async with session.get(power_endpoint, headers=headers, ssl=False) as r:
+        async with aiohttp.ClientSession(ssl=False, headers=headers) as session:
+            async with session.get(power_endpoint) as r:
                 json_body = await r.json()
                 if not r.ok:
                     raise RuntimeError(
