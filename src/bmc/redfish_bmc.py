@@ -43,7 +43,8 @@ class RedfishBMC(BMC):
         async with aiohttp.ClientSession() as session:
             async with session.delete(disconnect_endpoint, headers=headers, ssl=False) as r:
                 await r.text()
-                print(f'Disconnect status code: {r.status}')
+                if r.status != 204:  # expect "No content" status
+                    print(f'Unexpected disconnect status code: {r.status}')
 
     @property
     async def chassis(self) -> [str]:
@@ -63,7 +64,7 @@ class RedfishBMC(BMC):
         async with aiohttp.ClientSession() as session:
             async with session.get(chassis_endpoint, headers=headers, ssl=False) as r:
                 json_body = await r.json()
-                if not (200 <= r.status < 300):
+                if not r.ok:
                     raise RuntimeError(
                             f'Failed to establish redfish session: {r.headers} {json_body}'
                     )
@@ -100,7 +101,7 @@ class RedfishBMC(BMC):
         async with aiohttp.ClientSession() as session:
             async with session.get(power_endpoint, headers=headers, ssl=False) as r:
                 json_body = await r.json()
-                if not (200 <= r.status < 300):
+                if not r.ok:
                     raise RuntimeError(
                             f'Failed to establish redfish session: {r.headers} {json_body}'
                     )
@@ -112,7 +113,24 @@ class RedfishBMC(BMC):
         return 0
 
     async def set_cap_level(self, new_cap_level: int):
-        pass
+        print(f'Setting cap level to {new_cap_level}')
+        motherboard = await self.motherboard
+        power_endpoint = f'{self.redfish_root}/Chassis/{motherboard}/Power'
+        cap_dict = {
+            'PowerControl': [{'PowerLimit': {'LimitInWatts': new_cap_level}}]
+        }
+        print(f'Connecting to {power_endpoint}')
+        print(f'Patch data: {json.dumps(cap_dict, sort_keys=True, indent=2)}')
+
+        async with aiohttp.ClientSession() as session:
+            async with session.patch(power_endpoint, json=cap_dict, ssl=False) as r:
+                response = await r.text()
+                if not r.ok:
+                    raise RuntimeError(
+                            f'Failed to establish redfish session: {r.headers} {json_body}'
+                    )
+                print(f'\t{r.status=}\n\t{response=}')
+
 
     async def deactivate_capping(self):
         pass
@@ -140,12 +158,12 @@ if __name__ == '__main__':
             for chassis in all_chassis:
                 print(' -', chassis)
 
-            all_chassis = await bmc.chassis
-            for chassis in all_chassis:
-                print(' -', chassis)
-
             power = await bmc.current_power
             print(f'Current power draw: {power}')
+
+            print('Set power cap')
+            await bmc.set_cap_level(550)
+
         finally:
             print('Disconnecting')
             await bmc.disconnect()
