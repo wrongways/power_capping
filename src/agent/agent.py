@@ -121,4 +121,4 @@ class CappingAgent:
 
 
 if __name__ == '__main__':
-    agent = CappingAgent(port_number=5432, firestarter_path='/tmp/FIRESTARTER')
+    agent = CappingAgent(port_number=5432, firestarter_path='/home_nfs/wainj/local/bin/firestarter')
