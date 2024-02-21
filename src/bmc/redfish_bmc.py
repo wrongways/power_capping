@@ -191,14 +191,14 @@ if __name__ == '__main__':
 
             print('Getting current cap level', end=' ')
             new_cap_level = await bmc.current_cap_level
-            print(new_cap_level)
+            print(f'Capping level: {new_cap_level}')
 
             print('Reset power cap to', initial_cap_level)
             await bmc.set_cap_level(initial_cap_level)
 
             print('Getting current cap level', end=' ')
             new_cap_level = await bmc.current_cap_level
-            print(new_cap_level)
+            print(f'Capping level: {new_cap_level}')
             assert new_cap_level == initial_cap_level
 
         finally:
