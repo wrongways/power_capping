@@ -131,16 +131,18 @@ if __name__ == '__main__':
     async def main(args):
         bmc = RedfishBMC(args.hostname, args.username, args.password)
         print('Connecting')
-        await bmc.connect()
-        print('Chassis')
-        all_chassis = await bmc.chassis
-        for chassis in await all_chassis:
-            print(' -', chassis)
+        try:
+            await bmc.connect()
+            print('Chassis')
+            all_chassis = await bmc.chassis
+            for chassis in all_chassis:
+                print(' -', chassis)
 
-        power = await bmc.current_power
-        print(f'Current power draw: {power}')
-        print('Disconnecting')
-        await bmc.disconnect()
+            power = await bmc.current_power
+            print(f'Current power draw: {power}')
+        finally:
+            print('Disconnecting')
+            await bmc.disconnect()
 
     program_args = parse_args()
     asyncio.run(main(program_args))
