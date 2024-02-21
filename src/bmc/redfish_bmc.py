@@ -182,22 +182,24 @@ if __name__ == '__main__':
             print(f'Current power draw: {power}')
 
             print('Getting current cap level', end=' ')
-            cap_level = await bmc.current_cap_level
-            print(cap_level)
+            initial_cap_level = await bmc.current_cap_level
+            print(initial_cap_level)
 
-            print('Set power cap to', cap_level - 50)
-            await bmc.set_cap_level(cap_level - 50)
-
-            print('Getting current cap level', end=' ')
-            cap_level = await bmc.current_cap_level
-            print(cap_level)
-
-            print('Set power cap to', cap_level)
-            await bmc.set_cap_level(cap_level)
+            new_cap_level = initial_cap_level + 50
+            print('Set power cap to', new_cap_level)
+            await bmc.set_cap_level(new_cap_level)
 
             print('Getting current cap level', end=' ')
-            cap_level = await bmc.current_cap_level
-            print(cap_level)
+            new_cap_level = await bmc.current_cap_level
+            print(new_cap_level)
+
+            print('Reset power cap to', initial_cap_level)
+            await bmc.set_cap_level(initial_cap_level)
+
+            print('Getting current cap level', end=' ')
+            new_cap_level = await bmc.current_cap_level
+            print(new_cap_level)
+            assert new_cap_level == initial_cap_level
 
         finally:
             print('Disconnecting')
