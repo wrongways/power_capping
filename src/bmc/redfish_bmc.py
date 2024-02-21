@@ -54,8 +54,10 @@ class RedfishBMC(BMC):
         """
 
         if self._chassis is not None:
+            print(f'Returning cached chassis: {self._chassis}')
             return self._chassis
 
+        print('Fetching /Chassis members')
         chassis_endpoint = f'{self.redfish_root}/Chassis'
         headers = {'X-Auth-Token': self.token}
         async with aiohttp.ClientSession() as session:
@@ -141,7 +143,7 @@ if __name__ == '__main__':
             all_chassis = await bmc.chassis
             for chassis in all_chassis:
                 print(' -', chassis)
-                
+
             power = await bmc.current_power
             print(f'Current power draw: {power}')
         finally:
