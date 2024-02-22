@@ -100,9 +100,9 @@ class CappingAgent:
         print(f'{json_body}')
         print(f'Firestarter route args: {args}, {type(args)}')
 
-        if self.firestarter_thread.is_alive():
+        if self.firestarter_thread is None or self.firestarter_thread.is_alive():
             return web.json_response({'error': 'Firestarter already running'}, status=HTTP_409_CONFLICT)
-        
+
         # if args is junk or contains unknown fields, this blows up
         self.firestarter_thread = threading.Thread(target=self.launch_firestarter, args=[json_body])
         self.firestarter_thread.start()
