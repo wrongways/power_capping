@@ -93,44 +93,43 @@ class CappingAgent:
         return web.json_response(package_powers)
 
     async def firestarter(self, request: web.Request):
-        args = await request.text()
-        json_body = await request.json()
+        """"/firestarter route handler.
 
-        print(f'{args=}')
-        print(f'{json_body}')
-        print(f'Firestarter route args: {args}, {type(args)}')
+        @param request - the request object provided by aiohttp
+        """
 
+        # If firestarter already running return 409 - conflict
         if self.firestarter_thread is not None and self.firestarter_thread.is_alive():
             return web.json_response({'error': 'Firestarter already running'}, status=HTTP_409_CONFLICT)
 
-        if self.firestarter_thread is not None:
-            print('Joining firestarter thread from firestarter route')
-            self.firestarter_thread.join()
-            print(f'Active thread count: {threading.active_count()}')
-            for thread in threading.enumerate():
-                print(thread.name)
+        # 'join()' any previous thread. Given that the thread must be complete
+        # at this point (see previous check), then this will return immediately.
 
-        # if args is junk or contains unknown fields, this blows up
+        if self.firestarter_thread is not None:
+            self.firestarter_thread.join()
+
+        # pull out the request arguments
+        json_body = await request.json()
         self.firestarter_thread = threading.Thread(target=self.launch_firestarter, args=[json_body], name='Firestarter')
         self.firestarter_thread.start()
         return web.json_response(None, status=HTTP_202_ACCEPTED)
 
     def launch_firestarter(self, args):
-        print(f'launch_firestarter() args: {args}, {type(args)}')
-        if isinstance(args, dict):
-            for k, v in args.items():
-                print(f'{k:>10}: {v}')
+        """Launches the firestarter subprocess.
+
+        @param args: {str: int} - list of firestarter arguments
+            timeout → runtime_secs
+            load → pct_load
+            threads → n_threads
+        """
 
         runtime_secs = args.get('runtime_secs', 30)
         pct_load = args.get('pct_load', 100)
         n_threads = args.get('n_threads', 0)
         command_line = f'{self.firestarter_path} --quiet --timeout {runtime_secs} --load {pct_load} --threads {n_threads}'
-        print(f'Firestarter command:\n\t{command_line}')
+
+        # Launch the subprocess, sending the firestarter banner to /dev/null
         subprocess.run(command_line.split(), stdout=subprocess.DEVNULL)
-        print(f'Firestarter finished: thread_alive={self.firestarter_thread.is_alive()}')
-        print(f'Active thread count: {threading.active_count()}')
-        for thread in threading.enumerate():
-            print(thread.name)
 
     def read_energy_path(self, path, read_max_energy=False):
         """\
