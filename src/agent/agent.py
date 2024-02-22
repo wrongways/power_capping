@@ -18,6 +18,7 @@ class CappingAgent:
         """
 
         self.firestarter_path = firestarter_path
+        self.firestarter_process = None
         # Get the list of packages/sockets
         packages_paths = list(Path(RAPL_PATH).glob('intel-rapl:[0-9]*'))
         pprint(packages_paths)
@@ -99,7 +100,11 @@ class CappingAgent:
 
     def launch_firestarter(self, runtime_secs, pct_load=100, n_threads=0):
         command_line = f'{self.firestarter_path} --quiet --timeout {runtime_secs} --load {pct_load} --threads {n_threads}'
-        subprocess.run(command_line.split())
+        self.firestarter_process = subprocess.Popen(command_line.split())
+        if poll_rc := self.firestarter_process.poll():
+            print(poll_rc)
+        else:
+            print(f'poll_rc() is false/None')
 
     def read_energy_path(self, path, read_max_energy=False):
         """\
