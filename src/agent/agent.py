@@ -98,16 +98,18 @@ class CappingAgent:
         print(f'{args=}')
         print(f'{json_body}')
         print(f'Firestarter route args: {args}, {type(args)}')
-        args = tuple(json_body.items())
-        
+
         # if args is junk or contains unknown fields, this blows up
-        self.firestarter_thread = threading.Thread(target=self.launch_firestarter, args=json_body)
+        self.firestarter_thread = threading.Thread(target=self.launch_firestarter, args=[json_body])
         self.firestarter_thread.start()
         return web.json_response(None, status=HTTP_202_ACCEPTED)
 
-    def launch_firestarter(self, **args):
+    def launch_firestarter(self, args):
         print(f'launch_firestarter() args: {args}, {type(args)}')
-        args = dict(args)
+        if isinstance(args, dict):
+            for k, v in args.items():
+                print(f'{k:>10}: {v}')
+
         runtime_secs = args.get('runtime_secs', 30)
         pct_load = args.get('pct_load', 100)
         n_threads = args.get('n_threads', 0)
