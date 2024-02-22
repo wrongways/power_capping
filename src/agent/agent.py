@@ -100,7 +100,7 @@ class CappingAgent:
         self.firestarter_thread.start()
         return web.json_response(None, status=HTTP_202_ACCEPTED)
 
-    def launch_firestarter(self, **args):
+    def launch_firestarter(self, args):
         runtime_secs = args.get('runtime_secs', 30)
         pct_load = args.get('pct_load', 100)
         n_threads = args.get('n_threads', 0)
