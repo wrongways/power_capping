@@ -93,7 +93,7 @@ class CappingAgent:
 
     async def firestarter(self, request):
         args = await request.json()
-        pprint(args, type(args))
+        print(f'Firestarter route args: {args}, {type(args)}')
 
         # if args is junk or contains unknown fields, this blows up
         self.firestarter_thread = threading.Thread(target=self.launch_firestarter, args=args)
@@ -101,8 +101,7 @@ class CappingAgent:
         return web.json_response(None, status=HTTP_202_ACCEPTED)
 
     def launch_firestarter(self, args):
-        print(args, type(args))
-        print(**args)
+        print(f'launch_firestarter() args: {args}, {type(args)}')
         runtime_secs = args.get('runtime_secs', 30)
         pct_load = args.get('pct_load', 100)
         n_threads = args.get('n_threads', 0)
