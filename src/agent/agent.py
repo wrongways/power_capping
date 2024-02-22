@@ -103,6 +103,13 @@ class CappingAgent:
         if self.firestarter_thread is not None and self.firestarter_thread.is_alive():
             return web.json_response({'error': 'Firestarter already running'}, status=HTTP_409_CONFLICT)
 
+        if self.firestarter_thread is not None:
+            print('Joining firestarter thread from firestarter route')
+            self.firestarter_thread.join()
+            print(f'Active thread count: {threading.active_count()}')
+            for thread in threading.enumerate():
+                print(thread.name)
+
         # if args is junk or contains unknown fields, this blows up
         self.firestarter_thread = threading.Thread(target=self.launch_firestarter, args=[json_body], name='Firestarter')
         self.firestarter_thread.start()
@@ -119,12 +126,11 @@ class CappingAgent:
         n_threads = args.get('n_threads', 0)
         command_line = f'{self.firestarter_path} --quiet --timeout {runtime_secs} --load {pct_load} --threads {n_threads}'
         print(f'Firestarter command:\n\t{command_line}')
-        subprocess.run(command_line.split())
+        subprocess.run(command_line.split(), stdout=subprocess.DEVNULL)
         print(f'Firestarter finished: thread_alive={self.firestarter_thread.is_alive()}')
         print(f'Active thread count: {threading.active_count()}')
         for thread in threading.enumerate():
             print(thread.name)
-        self.firestarter_thread = None
 
     def read_energy_path(self, path, read_max_energy=False):
         """\
