@@ -1,4 +1,5 @@
 import subprocess
+import threading
 from pathlib import Path
 from pprint import pprint
 from time import monotonic_ns, sleep
@@ -18,7 +19,7 @@ class CappingAgent:
         """
 
         self.firestarter_path = firestarter_path
-        self.firestarter_process = None
+        self.firestarter_thread = None
         # Get the list of packages/sockets
         packages_paths = list(Path(RAPL_PATH).glob('intel-rapl:[0-9]*'))
         pprint(packages_paths)
@@ -95,16 +96,13 @@ class CappingAgent:
         pprint(args)
 
         # if args is junk or contains unknown fields, this blows up
-        self.launch_firestarter(**args)
+        self.firestarter_thread = threading.Thread(target=self.launch_firestarter, args=args)
+        self.firestarter_thread.start()
         return web.json_response(None, status=HTTP_202_ACCEPTED)
 
     def launch_firestarter(self, runtime_secs, pct_load=100, n_threads=0):
         command_line = f'{self.firestarter_path} --quiet --timeout {runtime_secs} --load {pct_load} --threads {n_threads}'
-        self.firestarter_process = subprocess.Popen(command_line.split())
-        if poll_rc := self.firestarter_process.poll():
-            print(poll_rc)
-        else:
-            print(f'poll_rc() is false/None')
+        subprocess.run(command_line.split())
 
     def read_energy_path(self, path, read_max_energy=False):
         """\
