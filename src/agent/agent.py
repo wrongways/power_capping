@@ -1,4 +1,3 @@
-import asyncio
 import subprocess
 from pathlib import Path
 from pprint import pprint
@@ -95,8 +94,7 @@ class CappingAgent:
         pprint(args)
 
         # if args is junk or contains unknown fields, this blows up
-        firestarter_thread = asyncio.to_thread(self.launch_firestarter, **args)
-        asyncio.run(firestarter_thread)
+        self.launch_firestarter(**args)
         return web.json_response(None, status=HTTP_202_ACCEPTED)
 
     def launch_firestarter(self, runtime_secs, pct_load=100, n_threads=0):
