@@ -91,8 +91,13 @@ class CappingAgent:
 
         return web.json_response(package_powers)
 
-    async def firestarter(self, request):
-        args = await request.json()
+    async def firestarter(self, request: web.Request):
+        args = await request.text()
+        json_body = await request.json()
+
+        print(f'{args=}')
+        print(f'{json_body}')
+
         print(f'Firestarter route args: {args}, {type(args)}')
         
         # if args is junk or contains unknown fields, this blows up
