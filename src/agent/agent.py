@@ -9,6 +9,7 @@ from aiohttp import web
 RAPL_PATH = "/sys/devices/virtual/powercap/intel-rapl/"
 RAPL_SAMPLE_TIME_SECS = .25
 HTTP_202_ACCEPTED = 202
+HTTP_409_CONFLICT = 409
 
 
 class CappingAgent:
@@ -99,6 +100,9 @@ class CappingAgent:
         print(f'{json_body}')
         print(f'Firestarter route args: {args}, {type(args)}')
 
+        if self.firestarter_thread.is_alive():
+            return web.json_response({'error': 'Firestarter already running'}, status=HTTP_409_CONFLICT)
+        
         # if args is junk or contains unknown fields, this blows up
         self.firestarter_thread = threading.Thread(target=self.launch_firestarter, args=[json_body])
         self.firestarter_thread.start()
