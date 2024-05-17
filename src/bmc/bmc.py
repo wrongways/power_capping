@@ -1,6 +1,12 @@
 """Abstract class for BMC implementations."""
 
 from abc import ABC, abstractmethod
+from enum import auto, Enum
+
+
+class BMC_Type(Enum):
+    IPMI = auto()
+    REDFISH = auto()
 
 
 class BMC(ABC):
