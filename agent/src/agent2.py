@@ -133,14 +133,15 @@ async def rapl_power(_request):
 if __name__ == '__main__':
     packages_paths = list(Path(RAPL_PATH).glob('intel-rapl:[0-9]*'))
     package_info = {
-        f'{path}': {
+        path: {
             'energy_uj_path': path.joinpath('energy_uj'),
             'name': path.joinpath('name').read_text().strip(),
             'max_energy': read_energy_path(path, read_max_energy=True)
         } for path in packages_paths
     }
     logger.debug(f'{packages_paths=}')
-    logger.debug(f'package_info:\n{json.dumps(package_info, indent=3, sort_keys=True)}')
+    str_package_info = {str(k): str(v) for k, v in package_info}
+    logger.debug(f'package_info:\n{json.dumps(str_package_info, indent=3, sort_keys=True)}')
 
     firestarter_thread = None
 
