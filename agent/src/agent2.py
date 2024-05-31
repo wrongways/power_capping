@@ -133,7 +133,7 @@ async def rapl_power(_request):
 if __name__ == '__main__':
     packages_paths = list(Path(RAPL_PATH).glob('intel-rapl:[0-9]*'))
     package_info = {
-        path: {
+        f'{path}': {
             'energy_uj_path': path.joinpath('energy_uj'),
             'name': path.joinpath('name').read_text().strip(),
             'max_energy': read_energy_path(path, read_max_energy=True)
