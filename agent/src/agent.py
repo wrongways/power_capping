@@ -1,103 +1,32 @@
-import shlex
+"""Capping Agent.
+
+Runs an aiohttp web server offering 3 services:
+
+- get system information
+- get rapl power readings
+- post launch firestarter
+
+The agent has its own CLI
+"""
+
+import argparse
+import json
+import logging
 import subprocess
 import threading
 from pathlib import Path
-from pprint import pprint
 from time import monotonic_ns, sleep
 
 from aiohttp import web
+
+from system_info import system_info
 
 RAPL_PATH = "/sys/devices/virtual/powercap/intel-rapl/"
 RAPL_SAMPLE_TIME_SECS = .25
 HTTP_202_ACCEPTED = 202
 HTTP_409_CONFLICT = 409
 
-
-# Utility functions
-
-
-def run_command(command):
-    """Executes command as a subprocess, ensuring the language is et to en_US.
-    Returns the stdout & stderr of the command as strings"""
-    return subprocess.run(
-            shlex.split(command),
-            encoding="utf8",
-            text=True,
-            capture_output=True,
-            env={
-                "LANG": "en_US.UTF-8",
-            }
-    )
-
-
-def os_name():
-    """Reads /etc/os-release to determine the OS name
-    NOTE: This routine only works on Linux"""
-
-    os_data = Path("/etc/os-release").read_text().splitlines()
-    os_data = {d[0]: d[1] for d in [
-        e.strip().split('=') for e in os_data
-    ] if len(d) == 2
-               }
-    os_name = (
-            os_data.get("PRETTY_NAME") or
-            f"{os_data.get('NAME', 'Unknown')} {os_data.get('VERSION', '')}"
-    )
-    return {"os_name": os_name.strip('"')}
-
-
-def hostname():
-    """Does what is says on the can - returns the hostname"""
-    return {"hostname": run_command("hostname -s").stdout.strip()}
-
-
-def cpu_info():
-    """Runs lscpu to collect details regarding the installed CPUs"""
-    CPU_KEYS = [
-        "Architecture",
-        "CPU(s)",
-        "Thread(s) per core",
-        "Core(s) per socket",
-        "Socket(s)",
-        "Vendor ID",
-        "Model name",
-        "CPU MHz",
-        "CPU max MHz",
-        "CPU min MHz",
-    ]
-
-    cpu_data = run_command("lscpu").stdout
-    # Transform each line into dictionary entry, split on colon ':'
-    cpu_data = {d[0]: d[1] for d in [line.strip().split(":") for line in cpu_data.splitlines()]}
-    # make all the keys lowercase and replace spaces with underscores
-    return {k.lower().replace(" ", "_"): cpu_data[k].strip() for k in CPU_KEYS}
-
-
-def hw_info():
-    """Returns platform/firmware info"""
-    dmi_path = Path("/sys/devices/virtual/dmi/id")
-    dmi_files = [
-        "bios_date",
-        "bios_vendor",
-        "bios_version",
-        "board_name",
-        "board_vendor",
-        "board_version",
-        "sys_vendor",
-    ]
-    return {
-        f: dmi_path.joinpath(f).read_text().strip() for f in dmi_files
-    }
-
-
-def system_info():
-    return web.json_response(
-            hw_info() |
-            cpu_info() |
-            hostname() |
-            os_name()
-    )
-
+logger = logging.getLogger(__name__)
 
 class CappingAgent:
     def __init__(self, port_number: int, firestarter_path: str):
@@ -105,12 +34,11 @@ class CappingAgent:
         Params:
             firestarter_path: str - the filepath to the firestarter executable
         """
-
         self.firestarter_path = firestarter_path
         self.firestarter_thread = None
         # Get the list of packages/sockets
         packages_paths = list(Path(RAPL_PATH).glob('intel-rapl:[0-9]*'))
-        pprint(packages_paths)
+        logger.debug(f'{packages_paths=}')
 
         # For each package, create a dictionary with the energy file path,
         # max_energy_range_uj and package name
@@ -122,19 +50,19 @@ class CappingAgent:
             }
             for path in packages_paths
         }
-        pprint(self.package_info)
+        logger.debug(f'package_info:\n{json.dumps(self.package_info, indent=3, sort_keys=True)}')
         self.app = web.Application()
 
         self.app.add_routes([
             web.get('/rapl_power', self.rapl_power),
             web.post('/firestarter', self.firestarter),
-            web.get('/system_info', system_info)
+            web.get('/system_info', self.get_system_info)
         ])
         web.run_app(self.app(), port=port_number)
 
     async def rapl_power(self, _request):
-        """\
-        Calculates the current socket power consumption for all sockets
+        """
+        Calculates the current socket power consumption for all sockets.
 
         For each socket, read the current energy value, sleep for a short period,
         then re-read the energy value. Power is then energy delta divided by time
@@ -237,5 +165,29 @@ class CappingAgent:
         return int(energy_path.read_text().strip())
 
 
+    async def get_system_info(self):
+        return web.json_response(system_info())
+
 if __name__ == '__main__':
-    agent = CappingAgent(port_number=5432, firestarter_path='/home_nfs/wainj/local/bin/firestarter')
+    parser = argparse.ArgumentParser(
+            prog='CappingAgent',
+            description='Launches the capping tool agent',
+    )
+
+    parser.add_argument(
+            '-P', '--port',
+            default=5432,
+            type=int,
+            help='Port the agent will listen on'
+    )
+    parser.add_argument(
+            '-f', '--firestarter',
+            default='/home_nfs/wainj/local/bin/firestarter',
+            help='Fully qualified path to the firestarter load generation programme'
+    )
+
+    parser.add_argument('-v', '--verbose', action='store_true')
+    parser.add_argument('-V', '--version', action='version')
+    args = parser.parse_args()
+    agent = CappingAgent(port_number=args.port, firestarter_path=args.firestarter)
+    web.run_app(agent.app)
