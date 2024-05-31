@@ -1,5 +1,4 @@
 import argparse
-import json
 import logging
 import subprocess
 import threading
@@ -139,9 +138,9 @@ if __name__ == '__main__':
             'max_energy': read_energy_path(path, read_max_energy=True)
         } for path in packages_paths
     }
-    logger.debug(f'{packages_paths=}')
-    str_package_info = {str(k): str(v) for k, v in package_info}
-    logger.debug(f'package_info:\n{json.dumps(str_package_info, indent=3, sort_keys=True)}')
+    # logger.debug(f'{packages_paths=}')
+    # str_package_info = {str(k): str(v) for k, v in package_info}
+    # logger.debug(f'package_info:\n{json.dumps(str_package_info, indent=3, sort_keys=True)}')
 
     firestarter_thread = None
 
