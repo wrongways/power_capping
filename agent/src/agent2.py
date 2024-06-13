@@ -138,6 +138,10 @@ async def firestarter(request: web.Request):
     return web.json_response(None, status=HTTP_202_ACCEPTED)
 
 
+async def shutdown():
+    app.shutdown()
+
+
 def parse_cli():
     parser = argparse.ArgumentParser(
             prog='CappingAgent',
@@ -184,6 +188,8 @@ if __name__ == '__main__':
     app = web.Application()
     app.add_routes([web.get('/system_info', get_system_info),
                     web.get('/rapl_power', rapl_power),
-                    web.post('/firestarter', firestarter)])
+                    web.post('/firestarter', firestarter),
+                    web.post('/shutdown', shutdown)],
+                   )
 
     web.run_app(app, port=cli_args.port)
