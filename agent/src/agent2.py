@@ -138,7 +138,7 @@ async def firestarter(request: web.Request):
     return web.json_response(None, status=HTTP_202_ACCEPTED)
 
 
-async def shutdown():
+async def shutdown(_request):
     app.shutdown()
 
 
