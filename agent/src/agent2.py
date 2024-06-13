@@ -1,10 +1,10 @@
 import argparse
-import json
 import logging
 import subprocess
 import threading
 from asyncio import sleep
 from pathlib import Path
+from pprint import pprint
 from time import monotonic_ns
 
 from aiohttp import web
@@ -129,9 +129,9 @@ async def firestarter(request: web.Request):
 
     # pull out the request arguments
     json_body = request.json()
-    logger.debug(json.dumps(json_body, indent=3, sort_keys=True))
-    print(json.dumps(json_body, indent=3, sort_keys=True))
-    
+    # logger.debug(json.dumps(json_body, indent=3, sort_keys=True))
+    pprint(json_body)
+
     firestarter_thread = threading.Thread(target=launch_firestarter, args=[json_body],
                                           name='Firestarter')
     firestarter_thread.start()
