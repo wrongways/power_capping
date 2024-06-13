@@ -139,7 +139,7 @@ async def firestarter(request: web.Request):
 
 
 async def shutdown(_request):
-    app.shutdown()
+    await app.shutdown()
 
 
 def parse_cli():
