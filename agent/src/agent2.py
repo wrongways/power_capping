@@ -17,9 +17,11 @@ HTTP_409_CONFLICT = 409
 
 logger = logging.getLogger(__name__)
 
+firestarter_thread = None
+firestarter_path = ''
 
 
-async def get_system_info(self):
+async def get_system_info(_request):
     return web.json_response(system_info())
 
 
@@ -87,63 +89,52 @@ async def rapl_power(_request):
 
     return web.json_response(package_powers)
 
-    def launch_firestarter(args):
-        """Launches the firestarter subprocess.
 
-        @param args: {str: int} - list of firestarter arguments
-            timeout → runtime_secs
-            load → pct_load
-            threads → n_threads
-        """
-        runtime_secs = args.get('runtime_secs', 30)
-        pct_load = args.get('pct_load', 100)
-        n_threads = args.get('n_threads', 0)
-        command_line = f'{args.firestarter} --quiet --timeout {runtime_secs} --load {pct_load} --threads {n_threads}'
+def launch_firestarter(args):
+    """Launches the firestarter subprocess.
 
-        # Launch the subprocess, sending the firestarter banner to /dev/null
-        subprocess.run(command_line.split(), stdout=subprocess.DEVNULL)
+    @param args: {str: int} - list of firestarter arguments
+        timeout → runtime_secs
+        load → pct_load
+        threads → n_threads
+    """
 
-    async def firestarter(request: web.Request):
-        """"/firestarter route handler.
+    runtime_secs = args.get('runtime_secs', 30)
+    pct_load = args.get('pct_load', 100)
+    n_threads = args.get('n_threads', 0)
+    command_line = f'{firestarter_path} --quiet --timeout {runtime_secs} --load {pct_load} --threads {n_threads}'
+    logger.debug(f"Firestarter command: {command_line}")
 
-        @param request - the request object provided by aiohttp
-        """
-        # If firestarter already running return 409 - conflict
-        global firestarter_thread
-
-        if firestarter_thread is not None and firestarter_thread.is_alive():
-            return web.json_response({'error': 'Firestarter already running'}, status=HTTP_409_CONFLICT)
-
-        # 'join()' any previous thread. Given that the thread must be complete
-        # at this point (see previous check), then this will return immediately.
-
-        if firestarter_thread is not None:
-            firestarter_thread.join()
-
-        # pull out the request arguments
-        json_body = await request.json()
-        firestarter_thread = threading.Thread(target=launch_firestarter, args=[json_body],
-                                                   name='Firestarter')
-        firestarter_thread.start()
-        return web.json_response(None, status=HTTP_202_ACCEPTED)
+    # Launch the subprocess, sending the firestarter banner to /dev/null
+    subprocess.run(command_line.split(), stdout=subprocess.DEVNULL)
 
 
+async def firestarter(request: web.Request):
+    """"/firestarter route handler.
 
-if __name__ == '__main__':
-    packages_paths = list(Path(RAPL_PATH).glob('intel-rapl:[0-9]*'))
-    package_info = {
-        path: {
-            'energy_uj_path': path.joinpath('energy_uj'),
-            'name': path.joinpath('name').read_text().strip(),
-            'max_energy': read_energy_path(path, read_max_energy=True)
-        } for path in packages_paths
-    }
-    # logger.debug(f'{packages_paths=}')
-    # str_package_info = {str(k): str(v) for k, v in package_info}
-    # logger.debug(f'package_info:\n{json.dumps(str_package_info, indent=3, sort_keys=True)}')
+    @param request - the request object provided by aiohttp
+    """
+    # If firestarter already running return 409 - conflict
+    global firestarter_thread
 
-    firestarter_thread = None
+    if firestarter_thread is not None and firestarter_thread.is_alive():
+        return web.json_response({'error': 'Firestarter already running'}, status=HTTP_409_CONFLICT)
 
+    # 'join()' any previous thread. Given that the thread must be complete
+    # at this point (see previous check), then this will return immediately.
+
+    if firestarter_thread is not None:
+        firestarter_thread.join()
+
+    # pull out the request arguments
+    json_body = await request.json()
+    firestarter_thread = threading.Thread(target=launch_firestarter, args=[json_body],
+                                          name='Firestarter')
+    firestarter_thread.start()
+    return web.json_response(None, status=HTTP_202_ACCEPTED)
+
+
+def parse_cli():
     parser = argparse.ArgumentParser(
             prog='CappingAgent',
             description='Launches the capping tool agent',
@@ -165,3 +156,30 @@ if __name__ == '__main__':
     parser.add_argument('-V', '--version', action='version')
     args = parser.parse_args()
 
+    return args
+
+
+if __name__ == '__main__':
+    packages_paths = list(Path(RAPL_PATH).glob('intel-rapl:[0-9]*'))
+    package_info = {
+        path: {
+            'energy_uj_path': path.joinpath('energy_uj'),
+            'name': path.joinpath('name').read_text().strip(),
+            'max_energy': read_energy_path(path, read_max_energy=True)
+        } for path in packages_paths
+    }
+    # logger.debug(f'{packages_paths=}')
+    # str_package_info = {str(k): str(v) for k, v in package_info}
+    # logger.debug(f'package_info:\n{json.dumps(str_package_info, indent=3, sort_keys=True)}')
+
+    firestarter_thread = None
+
+    cli_args = parse_cli()
+    firestarter_path = cli_args.firestarter
+
+    app = web.Application()
+    app.add_routes([web.get('/system_info', get_system_info),
+                    web.get('/rapl_power', rapl_power),
+                    web.post('/firestarter', firestarter)])
+
+    web.run_app(app, port=cli_args.port)
