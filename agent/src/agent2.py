@@ -128,7 +128,7 @@ async def firestarter(request: web.Request):
         firestarter_thread.join()
 
     # pull out the request arguments
-    json_body = request.json()
+    json_body = await request.post()
     # logger.debug(json.dumps(json_body, indent=3, sort_keys=True))
     pprint(json_body)
 
