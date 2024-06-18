@@ -18,7 +18,7 @@ async def test_ipmi():
     current_cap_level = await ipmi_bmc.current_cap_level
     assert current_cap_level is None or current_cap_level > 0
 
-    print(f'IPMI Current power: {await ipmi_bmc.current_power}')
+    print(f'IPMI Current power: {await ipmi_bmc.current_power} Watts')
 
 
 async def main():
