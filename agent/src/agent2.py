@@ -140,6 +140,8 @@ async def firestarter(request: web.Request):
 
 async def shutdown(_request):
     await app.shutdown()
+    await app.cleanup()
+    return web.json_response(None, status=HTTP_202_ACCEPTED)
 
 
 def parse_cli():
