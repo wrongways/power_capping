@@ -59,7 +59,7 @@ def cpu_info():
     # Transform each line into dictionary entry, split on colon ':'
     cpu_data = {d[0]: d[1] for d in [line.strip().split(':') for line in cpu_data.splitlines()]}
     # make all the keys lowercase and replace spaces with underscores
-    return {k.lower().replace(' ', '_'): cpu_data[k].strip() for k in CPU_KEYS}
+    return {k.lower().replace(' ', '_'): cpu_data.get(k, 'Unknown').strip() for k in CPU_KEYS}
 
 
 def hw_info():
