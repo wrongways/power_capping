@@ -3,7 +3,7 @@ import atexit
 import sqlite3
 from datetime import datetime as dt, timedelta, UTC
 
-from ..bmc import BMC_Type, IpmiBMC, RedfishBMC
+from BMC import BMC_Type, IpmiBMC, RedfishBMC
 
 
 class Collector:
