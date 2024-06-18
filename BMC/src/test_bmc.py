@@ -1,6 +1,6 @@
 import os
 
-from BMC import IpmiBMC
+from ipmi_bmc import IpmiBMC
 
 bmc_hostname = os.environ.get('BMC_HOSTNAME')
 bmc_username = os.environ.get('BMC_USERNAME')
