@@ -30,7 +30,7 @@ class IPMI_COMMAND(str, Enum):
 class IpmiBMC(BMC):
     """Concrete implementation of the abstract BMC base class using IPMI/DCMI POWER."""
     def __init__(
-        self, bmc_hostname: str, bmc_username: str, bmc_password: str, ipmitool_path: str
+            self, bmc_hostname: str, bmc_username: str, bmc_password: str, ipmitool_path='/usr/bin/ipmitool'
     ):
         """Constructor.
         
