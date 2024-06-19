@@ -5,7 +5,7 @@ import asyncio
 from enum import Enum
 from typing import NamedTuple
 
-from bmc import BMC
+from .bmc import BMC
 
 
 class Result(NamedTuple):

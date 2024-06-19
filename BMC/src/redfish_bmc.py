@@ -5,7 +5,7 @@ from pathlib import Path
 
 import aiohttp
 
-from bmc import BMC
+from .bmc import BMC
 
 REDFISH_ROOT = '/redfish/v1'
 KNOWN_MOTHERBOARDS = {'motherboard', 'self', '1'}
