@@ -2,8 +2,8 @@ import asyncio
 import os
 import threading
 
+from BMC import BMC_Type
 from Collector import Collector
-from ...BMC import BMC_Type
 
 bmc_hostname = os.environ.get('BMC_HOSTNAME')
 bmc_username = os.environ.get('BMC_USERNAME')

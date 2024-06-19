@@ -7,7 +7,7 @@ from datetime import datetime as dt, timedelta, UTC
 
 import aiohttp
 
-from ...BMC import BMC_Type, IpmiBMC, RedfishBMC
+from BMC import BMC_Type, IpmiBMC, RedfishBMC
 
 logger = logging.getLogger(__name__)
 
