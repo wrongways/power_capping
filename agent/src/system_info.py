@@ -59,12 +59,12 @@ def cpu_info():
     # Transform each line into dictionary entry, split on colon ':'
     cpu_data = {d[0]: d[1] for d in [line.strip().split(':') for line in cpu_data.splitlines()]}
     # make all the keys lowercase and replace spaces with underscores
-    return {k.lower().replace(' ', '_'): cpu_data.get(k, 'Unknown').strip() for k in CPU_KEYS}
+    return {k.lower().replace(' ', '_').replace('(s)', 's'): cpu_data.get(k, 'Unknown').strip() for k in CPU_KEYS}
 
 
 def hw_info():
     """Returns platform/firmware info."""
-    dmi_path = Path('/sys/devices/virtual/dmi/id')
+    dmi_root = Path('/sys/devices/virtual/dmi/id')
     dmi_files = [
         'bios_date',
         'bios_vendor',
@@ -74,9 +74,15 @@ def hw_info():
         'board_version',
         'sys_vendor',
     ]
-    return {f: dmi_path.joinpath(f).read_text().strip() for f in dmi_files}
+    # List of dmi paths
+    dmi_paths = [dmi_root.joinpath(f) for f in dmi_files]
+
+    # For each dmi path that exists, create dictionary
+    # with name as key and stripped contents as value
+    return {p.name: p.read_text().strip() for p in dmi_paths if p.exists()}
 
 
 def system_info():
-    """Returns the aggregated dictionary containing all system information."""
-    return hw_info() | cpu_info() | hostname() | os_name()
+    """Returns the aggregated dictionary containing all non-null/non-empty system information."""
+    all_info = hw_info() | cpu_info() | hostname() | os_name()
+    return {k: v for k, v in all_info if v}
