@@ -95,7 +95,7 @@ class Collector:
             self.save_sample(timestamp, bmc_sample, agent_sample)
 
     async def connect(self):
-        self.http_session = await aiohttp.ClientSession()
+        self.http_session = aiohttp.ClientSession()
 
     async def disconnect(self):
         if self.http_session is not None:
