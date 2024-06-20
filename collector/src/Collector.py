@@ -27,7 +27,7 @@ class Collector:
         sqlite3.register_adapter(datetime.datetime, adapt_timestamp_iso_string)
         self.create_db_tables()
 
-        self.http_session = aiohttp.ClientSession()
+        self.http_session = None
 
         if bmc_type == BMC_Type.IPMI:
             self.bmc = IpmiBMC(bmc_hostname, bmc_username, bmc_password, ipmitool_path)
@@ -94,14 +94,21 @@ class Collector:
             agent_sample = await self.sample_agent()
             self.save_sample(timestamp, bmc_sample, agent_sample)
 
+    async def connect(self):
+        self.http_session = await aiohttp.ClientSession()
+
+    async def disconnect(self):
+        if self.http_session is not None:
+            await self.http_session.close()
+            self.http_session = None
+
     async def end_collect(self):
         self.do_collect = False
         self.db.close()
-        await self.http_session.close()
+        await self.disconnect()
 
     async def stop_collect(self):
         await self.end_collect()
-
 
     async def sample_agent(self):
         endpoint = self.agent_url + '/rapl_power'
