@@ -112,7 +112,7 @@ class Collector:
 
     async def sample_agent(self):
         endpoint = self.agent_url + '/rapl_power'
-        async with self.http_session.get(endpoint) as resp:
+        async with aiohttp.ClientSession().get(endpoint) as resp:
             if resp.status < 300:
                 rapl_data = await resp.json()
                 for d in rapl_data:
