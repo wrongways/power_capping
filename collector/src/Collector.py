@@ -133,7 +133,7 @@ class Collector:
 
     async def collect_system_information(self):
         endpoint = self.agent_url + '/system_info'
-        async with self.http_session.get(endpoint) as resp:
+        async with aiohttp.ClientSession().get(endpoint) as resp:
             if resp.status < 300:
                 system_info = await resp.json()
                 columns = ",".join(system_info)
