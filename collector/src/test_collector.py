@@ -12,7 +12,7 @@ bmc_password = os.environ.get('BMC_PASSWORD')
 
 async def test_ipmi():
     sleep_time = 10
-    collector = Collector(bmc_hostname, bmc_username, bmc_password, BMC_Type.IPMI, 'http://t3r1nod24:5432',
+    collector = Collector(bmc_hostname, bmc_username, bmc_password, BMC_Type.IPMI, 'http://t3r1nod23:5432',
                           'collector_test.db')
     collect_thread = threading.Thread(target=asyncio.run, args=(collector.start_collect(),))
     collect_thread.start()
