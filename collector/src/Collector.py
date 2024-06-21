@@ -164,5 +164,5 @@ class Collector:
     def save_agent_sample(db, timestamp, agent_sample):
         print(f'save_agent_sample: {agent_sample}')
         data = [[timestamp, package, power] for package, power in agent_sample.items()]
-        sql = 'insert into rapl(timestamp, package, power) values (?, ? ?);'
+        sql = 'insert into rapl(timestamp, package, power) values (?, ?, ?);'
         db.executemany(sql, data)
