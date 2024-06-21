@@ -30,7 +30,11 @@ class IPMI_COMMAND(str, Enum):
 class IpmiBMC(BMC):
     """Concrete implementation of the abstract BMC base class using IPMI/DCMI POWER."""
     def __init__(
-            self, bmc_hostname: str, bmc_username: str, bmc_password: str, ipmitool_path='/usr/bin/ipmitool'
+            self,
+            bmc_hostname: str,
+            bmc_username: str,
+            bmc_password: str,
+            ipmitool_path='/usr/bin/ipmitool'
     ):
         """Constructor.
         
@@ -44,7 +48,7 @@ class IpmiBMC(BMC):
         self.command_prefix = f'-H {bmc_hostname} -U {bmc_username} -P {bmc_password}'
         print(f"Creating IPMI BMC {bmc_hostname} – {bmc_username}/{bmc_password}")
         print(f"Creating IPMI BMC {self.bmc_hostname} – {self.bmc_username}/{self.bmc_password}")
-        print(self.command_prefix)
+        print(self.ipmitool, self.command_prefix)
 
     @property
     async def current_power(self) -> int:
