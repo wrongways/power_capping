@@ -137,6 +137,7 @@ class Collector:
                 print("inserting into database")
                 system_info = await resp.json()
                 columns = ",".join(system_info)
+                print(f"SystemInfo columns: {columns}")
                 placeholders = ",".join(list("?" * len(system_info)))
                 sql = f'insert into system_info ({columns}) values ({placeholders});'
                 logger.debug(f'System info sql: {sql}')
