@@ -139,7 +139,7 @@ class Collector:
                 columns = ",".join(system_info)
                 print(f"SystemInfo columns: {columns}")
                 print(f"{len(columns.split(','))=}, {len(system_info)=}")
-                for k, v in system_info:
+                for k, v in system_info.items():
                     print(f'{k:>20}: {v}')
 
                 placeholders = ",".join(list("?" * len(system_info)))
