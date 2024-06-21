@@ -26,8 +26,10 @@ class RedfishBMC(BMC):
         credentials = {'UserName': self.bmc_username, 'Password': self.bmc_password}
         print(f'{credentials=}')
         async with aiohttp.ClientSession() as session:
-            async with session.post(session_endpoint, json=credentials, ssl=False) as r:
+            async with session.post(session_endpoint, json=credentials) as r:
                 json_body = await r.json()
+                print(json.dumps(json_body, sort_keys=True, indent=2))
+                print(await r.text)
                 if not (200 <= r.status < 300):
                     raise RuntimeError(
                             f'Failed to establish redfish session: {r.headers} {json_body}'
@@ -65,12 +67,13 @@ class RedfishBMC(BMC):
         async with aiohttp.ClientSession() as session:
             async with session.get(chassis_endpoint, headers=headers, ssl=False) as r:
                 json_body = await r.json()
+                print(json.dumps(json_body, sort_keys=True, indent=2))
                 if not r.ok:
                     raise RuntimeError(
                             f'Failed to establish redfish session: {r.headers} {json_body}'
                     )
 
-                print(json.dumps(json_body, sort_keys=True, indent=2))
+                # print(json.dumps(json_body, sort_keys=True, indent=2))
                 # Chassis are held under the '@odata.id' key in the 'Members' array
                 paths = [member.get('@odata.id') for member in json_body.get('Members')]
                 all_chassis = [str(Path(path).name) for path in paths]
