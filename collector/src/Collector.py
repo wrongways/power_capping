@@ -140,6 +140,7 @@ class Collector:
                 placeholders = ",".join(list("?" * len(system_info)))
                 sql = f'insert into system_info ({columns}) values ({placeholders});'
                 logger.debug(f'System info sql: {sql}')
+                print(f'System info sql: {sql}')
                 with sqlite3.connect(self.db_file) as db:
                     db.execute(sql, system_info.values)
             else:
