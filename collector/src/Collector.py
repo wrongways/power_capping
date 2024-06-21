@@ -113,9 +113,8 @@ class Collector:
         async with aiohttp.ClientSession().get(endpoint) as resp:
             if resp.status < 300:
                 rapl_data = await resp.json()
-                for d in rapl_data:
-                    logger.debug(f'rapl,{d.package},{d.power}')
-
+                logger.debug(f'{rapl_data=}')
+                print(f'{rapl_data=}')
                 return rapl_data
             else:
                 logger.error("Failed to get rapl data from agent. Status code: {resp.status}\n{resp}")
@@ -137,15 +136,10 @@ class Collector:
                 print("inserting into database")
                 system_info = await resp.json()
                 columns = ",".join(system_info)
-                print(f"SystemInfo columns: {columns}")
-                print(f"{len(columns.split(','))=}, {len(system_info)=}")
-                for k, v in system_info.items():
-                    print(f'{k:>20}: {v}')
-
                 placeholders = ",".join(list("?" * len(system_info)))
+
                 sql = f'insert into system_info ({columns}) values ({placeholders});'
                 logger.debug(f'System info sql: {sql}')
-                print(f'System info sql: {sql}')
                 with sqlite3.connect(self.db_file) as db:
                     db.execute(sql, tuple(system_info.values()))
             else:
