@@ -77,7 +77,6 @@ class Collector:
             db.execute(create_bmc_table_sql)
             db.execute(create_rapl_table_sql)
             db.execute(create_system_info_table_sql)
-            db.execute('commit;')
 
     async def start_collect(self, freq=1):
         await self.collect_system_information()
