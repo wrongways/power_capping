@@ -130,21 +130,22 @@ class Collector:
 
     async def collect_system_information(self):
         endpoint = self.agent_url + '/system_info'
-        async with aiohttp.ClientSession().get(endpoint) as resp:
-            print(f"{resp.status=}")
-            if resp.status < 300:
-                print("inserting into database")
-                system_info = await resp.json()
-                columns = ",".join(system_info)
-                placeholders = ",".join(list("?" * len(system_info)))
+        async with aiohttp.ClientSession() as session:
+            async with session.get(endpoint) as resp:
+                print(f"{resp.status=}")
+                if resp.status < 300:
+                    print("inserting into database")
+                    system_info = await resp.json()
+                    columns = ",".join(system_info)
+                    placeholders = ",".join(list("?" * len(system_info)))
 
-                sql = f'insert into system_info ({columns}) values ({placeholders});'
-                logger.debug(f'System info sql: {sql}')
-                with sqlite3.connect(self.db_file) as db:
-                    db.execute(sql, tuple(system_info.values()))
-            else:
-                print("** SYSTEM INFO COLLECT FAIL **")
-                logger.error("Failed to get system information. Status code: {resp.status}\n{resp}")
+                    sql = f'insert into system_info ({columns}) values ({placeholders});'
+                    logger.debug(f'System info sql: {sql}')
+                    with sqlite3.connect(self.db_file) as db:
+                        db.execute(sql, tuple(system_info.values()))
+                else:
+                    print("** SYSTEM INFO COLLECT FAIL **")
+                    logger.error("Failed to get system information. Status code: {resp.status}\n{resp}")
 
     def save_sample(self, db, timestamp, bmc_sample, agent_sample):
         db.execute('begin')
