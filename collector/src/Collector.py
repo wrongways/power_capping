@@ -152,10 +152,11 @@ class Collector:
 
     @staticmethod
     def save_bmc_sample(db, timestamp, bmc_sample):
-        sql = 'insert into bmc(timestamp, power, cap_level) values(?, ?, ?);'
-        data = [timestamp, bmc_sample.bmc_power, bmc_sample.bmc_cap_level]
+        print(f'save_bmc_sample: {bmc_sample}')
+        sql = 'insert into bmc((timestamp,) + tuple(bmc_sample) values(?, ?, ?);'
+        data = (timestamp,) + tuple(bmc_sample.values())
+        print(f'save_bmc_sample: {data=}')
         db.execute(sql, data)
-        logger.debug(f'bmc,{timestamp},{bmc_sample.bmc_power}{bmc_sample.bmc_cap_level}')
 
     @staticmethod
     def save_agent_sample(db, timestamp, agent_sample):
