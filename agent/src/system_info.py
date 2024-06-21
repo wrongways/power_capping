@@ -55,11 +55,21 @@ def cpu_info():
         'CPU min MHz',
     ]
 
+    def to_int(s):
+        try:
+            i = int(s)
+        except ValueError:
+            i = 0
+        return i
+
     cpu_data = run_command('lscpu').stdout
     # Transform each line into dictionary entry, split on colon ':'
     cpu_data = {d[0]: d[1] for d in [line.strip().split(':') for line in cpu_data.splitlines()]}
     # make all the keys lowercase and replace spaces with underscores
-    return {k.lower().replace(' ', '_').replace('(s)', 's'): cpu_data.get(k, '').strip() for k in cpu_keys}
+    cpu_data = {k.lower().replace(' ', '_').replace('(s)', 's'): cpu_data.get(k, '').strip() for k in cpu_keys}
+    integer_keys = ('cpus', 'threads_per_core', 'cores_per_socket', 'sockets', 'cpu_mhz', 'cpu_min_mhz', 'cpu_max_mhz')
+    for k in integer_keys:
+        cpu_data[k] = to_int(cpu_data[k])
 
 
 def hw_info():
