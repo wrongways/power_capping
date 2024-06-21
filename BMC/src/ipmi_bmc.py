@@ -46,8 +46,6 @@ class IpmiBMC(BMC):
         super().__init__(bmc_hostname, bmc_username, bmc_password)
         self.ipmitool = ipmitool_path
         self.command_prefix = f'-H {bmc_hostname} -U {bmc_username} -P {bmc_password}'
-        print(f"Creating IPMI BMC {bmc_hostname} – {bmc_username}/{bmc_password}")
-        print(f"Creating IPMI BMC {self.bmc_hostname} – {self.bmc_username}/{self.bmc_password}")
         print(self.ipmitool, self.command_prefix)
 
     @property
