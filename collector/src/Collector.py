@@ -147,7 +147,7 @@ class Collector:
                 logger.debug(f'System info sql: {sql}')
                 print(f'System info sql: {sql}')
                 with sqlite3.connect(self.db_file) as db:
-                    db.execute(sql, tuple(system_info.values))
+                    db.execute(sql, tuple(system_info.values()))
             else:
                 print("** SYSTEM INFO COLLECT FAIL **")
                 logger.error("Failed to get system information. Status code: {resp.status}\n{resp}")
