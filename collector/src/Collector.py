@@ -93,13 +93,13 @@ class Collector:
                 agent_sample = await self.sample_agent()
                 self.save_sample(db, timestamp, bmc_sample, agent_sample)
 
-    async def connect(self):
-        self.http_session = aiohttp.ClientSession()
+    # async def connect(self):
+    #     self.http_session = aiohttp.ClientSession()
 
-    async def disconnect(self):
-        if self.http_session is not None:
-            await self.http_session.close()
-            self.http_session = None
+    # async def disconnect(self):
+    #     if self.http_session is not None:
+    #         await self.http_session.close()
+    #         self.http_session = None
 
     async def end_collect(self):
         self.do_collect = False
@@ -110,15 +110,16 @@ class Collector:
 
     async def sample_agent(self):
         endpoint = self.agent_url + '/rapl_power'
-        async with aiohttp.ClientSession().get(endpoint) as resp:
-            if resp.status < 300:
-                rapl_data = await resp.json()
-                logger.debug(f'{rapl_data=}')
-                print(f'{rapl_data=}')
-                return rapl_data
-            else:
-                logger.error("Failed to get rapl data from agent. Status code: {resp.status}\n{resp}")
-                return None
+        async with aiohttp.ClientSession() as session:
+            async with session.get(endpoint) as resp:
+                if resp.status < 300:
+                    rapl_data = await resp.json()
+                    logger.debug(f'{rapl_data=}')
+                    print(f'{rapl_data=}')
+                    return rapl_data
+                else:
+                    logger.error("Failed to get rapl data from agent. Status code: {resp.status}\n{resp}")
+                    return None
 
     async def sample_bmc(self):
         bmc_power = await self.bmc.current_power
