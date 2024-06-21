@@ -42,7 +42,7 @@ def hostname():
 
 def cpu_info():
     """Runs lscpu to collect details regarding the installed CPUs."""
-    CPU_KEYS = [
+    cpu_keys = [
         'Architecture',
         'CPU(s)',
         'Thread(s) per core',
@@ -59,7 +59,7 @@ def cpu_info():
     # Transform each line into dictionary entry, split on colon ':'
     cpu_data = {d[0]: d[1] for d in [line.strip().split(':') for line in cpu_data.splitlines()]}
     # make all the keys lowercase and replace spaces with underscores
-    return {k.lower().replace(' ', '_').replace('(s)', 's'): cpu_data.get(k, 'Unknown').strip() for k in CPU_KEYS}
+    return {k.lower().replace(' ', '_').replace('(s)', 's'): cpu_data.get(k, '').strip() for k in cpu_keys}
 
 
 def hw_info():
@@ -85,4 +85,6 @@ def hw_info():
 def system_info():
     """Returns the aggregated dictionary containing all non-null/non-empty system information."""
     all_info = hw_info() | cpu_info() | hostname() | os_name()
-    return {k: v for k, v in all_info.items() if v}
+    compact_info = {k: v for k, v in all_info.items() if v}
+    print(f'system_info: {compact_info}')
+    return compact_info
