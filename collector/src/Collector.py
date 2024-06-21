@@ -1,5 +1,4 @@
 import asyncio
-import atexit
 import datetime
 import logging
 import sqlite3
@@ -22,7 +21,6 @@ class Collector:
         self.agent_url = agent_url if agent_url.startswith('http') else f'http://{agent_url}'
         self.agent_url.rstrip('/')
         self.db_file = db_file
-        self.db = sqlite3.connect(db_file)
         sqlite3.register_adapter(datetime.date, adapt_timestamp_iso_string)
         sqlite3.register_adapter(datetime.datetime, adapt_timestamp_iso_string)
         self.create_db_tables()
@@ -34,7 +32,6 @@ class Collector:
         else:
             self.bmc = RedfishBMC(bmc_hostname, bmc_username, bmc_password)
 
-        atexit.register(self.db.close)
         self.do_collect = True
 
     def create_db_tables(self):
@@ -76,23 +73,25 @@ class Collector:
             sys_vendor text);
         '''
 
-        self.db.execute(create_bmc_table_sql)
-        self.db.execute(create_rapl_table_sql)
-        self.db.execute(create_system_info_table_sql)
+        with sqlite3.connect(self.db_file) as db:
+            db.execute(create_bmc_table_sql)
+            db.execute(create_rapl_table_sql)
+            db.execute(create_system_info_table_sql)
 
     async def start_collect(self, freq=1):
         await self.collect_system_information()
         sample_interval = timedelta(seconds=1 / freq)
         next_collect_timestamp = dt.now(UTC)
-        while self.do_collect:
-            timestamp = dt.now(UTC)
-            if (sleep_time := (next_collect_timestamp - timestamp).total_seconds()) > 0:
-                await asyncio.sleep(sleep_time)
-            next_collect_timestamp = timestamp + sample_interval
+        with sqlite3.connect(self.db_file) as db:
+            while self.do_collect:
+                timestamp = dt.now(UTC)
+                if (sleep_time := (next_collect_timestamp - timestamp).total_seconds()) > 0:
+                    await asyncio.sleep(sleep_time)
+                next_collect_timestamp = timestamp + sample_interval
 
-            bmc_sample = await self.sample_bmc()
-            agent_sample = await self.sample_agent()
-            self.save_sample(timestamp, bmc_sample, agent_sample)
+                bmc_sample = await self.sample_bmc()
+                agent_sample = await self.sample_agent()
+                self.save_sample(db, timestamp, bmc_sample, agent_sample)
 
     async def connect(self):
         self.http_session = aiohttp.ClientSession()
@@ -104,7 +103,6 @@ class Collector:
 
     async def end_collect(self):
         self.do_collect = False
-        self.db.close()
         await self.disconnect()
 
     async def stop_collect(self):
@@ -116,7 +114,7 @@ class Collector:
             if resp.status < 300:
                 rapl_data = await resp.json()
                 for d in rapl_data:
-                    logger.debug(f'rapl,d.package,d.power')
+                    logger.debug(f'rapl,{d.package},{d.power}')
 
                 return rapl_data
             else:
@@ -142,21 +140,25 @@ class Collector:
                 placeholders = ",".join(list("?" * len(system_info)))
                 sql = f'insert into system_info ({columns}) values ({placeholders});'
                 logger.debug(f'System info sql: {sql}')
-                self.db.execute(sql, system_info.values)
+                with sqlite3.connect(self.db_file) as db:
+                    db.execute(sql, system_info.values)
             else:
                 print("** SYSTEM INFO COLLECT FAIL **")
                 logger.error("Failed to get system information. Status code: {resp.status}\n{resp}")
 
-    def save_sample(self, timestamp, bmc_sample, agent_sample):
-        self.save_bmc_sample(timestamp, bmc_sample)
-        self.save_agent_sample(timestamp, agent_sample)
+    def save_sample(self, db, timestamp, bmc_sample, agent_sample):
+        self.save_bmc_sample(db, timestamp, bmc_sample)
+        self.save_agent_sample(db, timestamp, agent_sample)
 
-    def save_bmc_sample(self, timestamp, bmc_sample):
+    @staticmethod
+    def save_bmc_sample(db, timestamp, bmc_sample):
         sql = 'insert into bmc(timestamp, power, cap_level) values(?, ?, ?);'
         data = [timestamp, bmc_sample.bmc_power, bmc_sample.bmc_cap_level]
-        self.db.execute(sql, data)
+        db.execute(sql, data)
         logger.debug(f'bmc,{timestamp},{bmc_sample.bmc_power}{bmc_sample.bmc_cap_level}')
 
-    def save_agent_sample(self, timestamp, agent_sample):
-        for package, power in agent_sample:
-            print(f'rapl,{timestamp},{package},{power}')
+    @staticmethod
+    def save_agent_sample(db, timestamp, agent_sample):
+        data = [[timestamp, package, power] for package, power in agent_sample]
+        sql = 'insert into rapl(timestamp, package, power) values (?, ? ?);'
+        db.executemany(sql, data)
