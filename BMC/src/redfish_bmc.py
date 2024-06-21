@@ -27,7 +27,7 @@ class RedfishBMC(BMC):
         print(f'{credentials=}')
         async with aiohttp.ClientSession() as session:
             headers = {'content-type': 'application/json'}
-            async with session.post(session_endpoint, payload=credentials, headers=headers, ssl=False) as r:
+            async with session.post(session_endpoint, data=credentials, headers=headers, ssl=False) as r:
                 json_body = await r.json()
                 print(json.dumps(json_body, sort_keys=True, indent=2))
                 print(await r.text())
