@@ -28,11 +28,11 @@ def os_name():
     """
     os_data = Path('/etc/os-release').read_text().splitlines()
     os_data = {d[0]: d[1] for d in [e.strip().split('=') for e in os_data] if len(d) == 2}
-    os_name = (
+    name = (
         os_data.get('PRETTY_NAME')
-        or f"{os_data.get('NAME', 'Unknown')} {os_data.get('VERSION', '')}"
+        or f"{os_data.get('NAME', '')} {os_data.get('VERSION', '')}"
     )
-    return {'os_name': os_name.strip('"')}
+    return {'os_name': name.strip('"')}
 
 
 def hostname():
