@@ -147,8 +147,10 @@ class Collector:
                 logger.error("Failed to get system information. Status code: {resp.status}\n{resp}")
 
     def save_sample(self, db, timestamp, bmc_sample, agent_sample):
+        db.execute('begin')
         self.save_bmc_sample(db, timestamp, bmc_sample)
         self.save_agent_sample(db, timestamp, agent_sample)
+        db.execute('commit')
 
     @staticmethod
     def save_bmc_sample(db, timestamp, bmc_sample):
@@ -160,6 +162,7 @@ class Collector:
 
     @staticmethod
     def save_agent_sample(db, timestamp, agent_sample):
-        data = [[timestamp, package, power] for package, power in agent_sample]
+        print(f'save_agent_sample: {agent_sample}')
+        data = [[timestamp, s['package'], s['power']] for s in agent_sample]
         sql = 'insert into rapl(timestamp, package, power) values (?, ? ?);'
         db.executemany(sql, data)
