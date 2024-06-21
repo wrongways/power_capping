@@ -9,6 +9,7 @@ import aiohttp
 from BMC import BMC_Type, IpmiBMC, RedfishBMC
 
 logger = logging.getLogger(__name__)
+logger.level = 0
 
 
 def adapt_timestamp_iso_string(timestamp: datetime.datetime):
@@ -93,20 +94,8 @@ class Collector:
                 agent_sample = await self.sample_agent()
                 self.save_sample(db, timestamp, bmc_sample, agent_sample)
 
-    # async def connect(self):
-    #     self.http_session = aiohttp.ClientSession()
-
-    # async def disconnect(self):
-    #     if self.http_session is not None:
-    #         await self.http_session.close()
-    #         self.http_session = None
-
     async def end_collect(self):
         self.do_collect = False
-        await self.disconnect()
-
-    async def stop_collect(self):
-        await self.end_collect()
 
     async def sample_agent(self):
         endpoint = self.agent_url + '/rapl_power'
@@ -133,9 +122,7 @@ class Collector:
         endpoint = self.agent_url + '/system_info'
         async with aiohttp.ClientSession() as session:
             async with session.get(endpoint) as resp:
-                print(f"{resp.status=}")
                 if resp.status < 300:
-                    print("inserting into database")
                     system_info = await resp.json()
                     columns = ",".join(system_info)
                     placeholders = ",".join(list("?" * len(system_info)))
@@ -145,7 +132,6 @@ class Collector:
                     with sqlite3.connect(self.db_file) as db:
                         db.execute(sql, tuple(system_info.values()))
                 else:
-                    print("** SYSTEM INFO COLLECT FAIL **")
                     logger.error("Failed to get system information. Status code: {resp.status}\n{resp}")
 
     def save_sample(self, db, timestamp, bmc_sample, agent_sample):
@@ -156,15 +142,15 @@ class Collector:
 
     @staticmethod
     def save_bmc_sample(db, timestamp, bmc_sample):
-        print(f'save_bmc_sample: {bmc_sample}')
+        logger.debug(f'save_bmc_sample: {bmc_sample}')
         sql = 'insert into bmc(timestamp, power, cap_level) values(?, ?, ?);'
         data = (timestamp, bmc_sample.get('bmc_power'), bmc_sample.get('bmc_cap_level'))
-        print(f'save_bmc_sample: {data=}')
+        logger.debug(f'save_bmc_sample: {data=}')
         db.execute(sql, data)
 
     @staticmethod
     def save_agent_sample(db, timestamp, agent_sample):
-        print(f'save_agent_sample: {agent_sample}')
+        logger.debug(f'save_agent_sample: {agent_sample}')
         data = [[timestamp, package, power] for package, power in agent_sample.items()]
         sql = 'insert into rapl(timestamp, package, power) values (?, ?, ?);'
         db.executemany(sql, data)
