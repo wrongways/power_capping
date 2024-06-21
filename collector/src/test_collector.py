@@ -16,7 +16,7 @@ async def test_ipmi():
                           '/tmp/collector_test.db')
     collect_thread = threading.Thread(target=asyncio.run, args=(collector.start_collect(),))
     collect_thread.start()
-    print("Started collect thread, sleeping for {sleep_time} seconds")
+    print(f"Started collect thread, sleeping for {sleep_time} seconds")
     await asyncio.sleep(sleep_time)
     await collector.end_collect()
     collect_thread.join()
