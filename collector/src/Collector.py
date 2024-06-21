@@ -134,7 +134,9 @@ class Collector:
     async def collect_system_information(self):
         endpoint = self.agent_url + '/system_info'
         async with aiohttp.ClientSession().get(endpoint) as resp:
+            print(f"{resp.status=}")
             if resp.status < 300:
+                print("inserting into database")
                 system_info = await resp.json()
                 columns = ",".join(system_info)
                 placeholders = ",".join(list("?" * len(system_info)))
@@ -142,6 +144,7 @@ class Collector:
                 logger.debug(f'System info sql: {sql}')
                 self.db.execute(sql, system_info.values)
             else:
+                print("** SYSTEM INFO COLLECT FAIL **")
                 logger.error("Failed to get system information. Status code: {resp.status}\n{resp}")
 
     def save_sample(self, timestamp, bmc_sample, agent_sample):
