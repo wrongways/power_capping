@@ -85,4 +85,4 @@ def hw_info():
 def system_info():
     """Returns the aggregated dictionary containing all non-null/non-empty system information."""
     all_info = hw_info() | cpu_info() | hostname() | os_name()
-    return {k: v for k, v in all_info if v}
+    return {k: v for k, v in all_info.items() if v}
