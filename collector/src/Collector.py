@@ -139,6 +139,9 @@ class Collector:
                 columns = ",".join(system_info)
                 print(f"SystemInfo columns: {columns}")
                 print(f"{len(columns.split(','))=}, {len(system_info)=}")
+                for k, v in system_info:
+                    print(f'{k:>20}: {v}')
+
                 placeholders = ",".join(list("?" * len(system_info)))
                 sql = f'insert into system_info ({columns}) values ({placeholders});'
                 logger.debug(f'System info sql: {sql}')
