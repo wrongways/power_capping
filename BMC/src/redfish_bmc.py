@@ -23,13 +23,13 @@ class RedfishBMC(BMC):
         """Establish a redfish session."""
 
         session_endpoint = f'{self.redfish_root}/SessionService/Sessions/'
-        credentials = {'UserName': self.bmc_username, 'Password': self.bmc_password}
+        credentials = {"UserName": self.bmc_username, "Password": self.bmc_password}
         print(f'{credentials=}')
         async with aiohttp.ClientSession() as session:
             async with session.post(session_endpoint, json=credentials, ssl=False) as r:
                 json_body = await r.json()
                 print(json.dumps(json_body, sort_keys=True, indent=2))
-                print(await r.text)
+                print(await r.text())
                 if not (200 <= r.status < 300):
                     raise RuntimeError(
                             f'Failed to establish redfish session: {r.headers} {json_body}'
