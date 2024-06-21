@@ -58,7 +58,7 @@ class Collector:
             cpus integer not null,
             threads_per_core integer,
             cores_per_socket integer,
-            sockets integer
+            sockets integer,
             vendor_id text,
             model_name text,
             cpu_mhz integer,
