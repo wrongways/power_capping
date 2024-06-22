@@ -63,15 +63,20 @@ if __name__ == "__main__":
                 prog='Capping test tool',
                 description='Runs some capping tests against a given system',
         )
-        parser.add_argument('-H', '--hostname', required=True, help='BMC hostname/ip')
-        parser.add_argument('-U', '--username', required=True, help='BMC username')
-        parser.add_argument('-P', '--password', required=True, help='BMC password')
+        parser.add_argument('-H', '--bmc_hostname', required=True, help='BMC hostname/ip')
+        parser.add_argument('-U', '--bmc_username', required=True, help='BMC username')
+        parser.add_argument('-P', '--bmc_password', required=True, help='BMC password')
         parser.add_argument('-t', '--bmc_type', required=True, choices=['ipmi', 'redfish'], help='BMC password')
         parser.add_argument('-a', '--agent_url', required=True,
                             help='hostname and port number of the agent running on the system under test')
         parser.add_argument('-d', '--db_path', required=True,
                             help='Path to the sqlite3 db on the local system holding the collected statistics')
-        parser.add_argument('-i', '--impi', required='ipmi' in sys.argv, help='Path to impitool on the local system')
+        parser.add_argument('-i', '--impi',
+                            required='ipmi' in sys.argv,
+                            metavar='path to ipmitool',
+                            default='/usr/bin/ipmitool',
+                            help='Path to ipmitool on the local system. Only required if bmc_type="ipmi".')
+
         return parser.parse_args()
 
 
