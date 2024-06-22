@@ -1,1 +1,1 @@
-from .src import BMC_Type, IpmiBMC, RedfishBMC
+from src import BMC_Type, IpmiBMC, RedfishBMC
