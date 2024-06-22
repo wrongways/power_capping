@@ -35,6 +35,10 @@ class Collector:
 
         self.do_collect = True
 
+    async def bmc_connect(self):
+        if isinstance(self.bmc, RedfishBMC):
+            await self.bmc.connect()
+
     def create_db_tables(self):
         create_bmc_table_sql = '''\
         create table if not exists bmc(
