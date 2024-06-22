@@ -18,22 +18,23 @@ class RedfishBMC(BMC):
         self.session_id = None
         self._chassis = None
         self.redfish_root = f'https://{bmc_hostname}{REDFISH_ROOT}'
+        self.authenticated_root = f'https://{bmc_username}:{bmc_password}@{bmc_hostname}{REDFISH_ROOT}'
 
     async def connect(self):
         """Establish a redfish session."""
 
-        session_endpoint = f'{self.redfish_root}/SessionService/Sessions/'
+        session_endpoint = f'{self.authenticated_root}/SessionService/Sessions/'
         credentials = {"UserName": self.bmc_username, "Password": self.bmc_password}
         print(f'credentials: {json.dumps(credentials)}')
         async with aiohttp.ClientSession() as session:
-            headers = {'content-type': 'application/json'}
-            async with session.post(session_endpoint, data=json.dumps(credentials), headers=headers, ssl=False) as r:
+            # headers = {'content-type': 'application/json'}
+            async with session.post(session_endpoint, json=credentials, ssl=False) as r:
                 json_body = await r.json()
                 print(json.dumps(json_body, sort_keys=True, indent=2))
                 print(await r.text())
                 if not (200 <= r.status < 300):
                     raise RuntimeError(
-                            f'Failed to establish redfish session: {r.headers} {json_body}'
+                            f'Failed to establish redfish session: Status: {r.status} Headers:{r.raw_headers}'
                     )
                 self.token = r.headers.get('X-Auth-Token')
                 self.session_id = json_body.get('Id')
