@@ -6,6 +6,7 @@ to establish min and max power consumption (without loading any GPUs) and the mi
 import argparse
 import asyncio
 import sys
+from math import ceil
 
 import aiohttp
 
@@ -33,7 +34,16 @@ class Runner:
             self.collector = Collector(bmc_hostname, bmc_username, bmc_password, bmc_type, agent_url, db_path)
 
     async def calibrate(self):
-        """Establishes the min/max power consumption of the system under test."""
+        """Establish min/max power draws and capping levels"""
+        min_power, max_power = await self.get_min_max_power()
+        max_power = ceil(int(max_power * 1.2) // 10) * 10  # Give a bit of headroom and round to 10
+        capping_levels = await self.find_capping_levels(min_power, max_power)
+
+    async def get_min_max_power(self):
+        """Establishes the min/max power consumption of the system under test.
+
+            Assumes that the system under test is at (close to) idle
+        """
 
         sample_duration_secs = 10
         min_power = min([await self.bmc.current_power for _ in range(sample_duration_secs)])
@@ -44,8 +54,11 @@ class Runner:
             max_power = max(max_power, await self.bmc.current_power)
 
         print(f"Min power: {min_power} W, max power: {max_power} W")
+        return min_power, max_power
 
     async def run_firestarter(self, load_pct, n_threads, runtime_secs):
+        """Get the agent to run firestarter with the provided parameters."""
+
         firestarter_endpoint = f'{self.agent_url}/firestarter'
         firestarter_args = {
             'load_pct': load_pct,
@@ -57,6 +70,33 @@ class Runner:
             async with session.post(firestarter_endpoint, json=firestarter_args, ssl=False) as resp:
                 if resp.status != HTTP_202_ACCEPTED:
                     print(f"Failed to launch firestarter: {resp.status}")
+
+    async def find_capping_levels(self, min_power, max_power):
+        """Determine the available capping levels."""
+
+        power_delta = 10  # Watts
+        capping_levels = set()
+        max_tries = 3
+        current_cap_level = 999_999_999
+        for cap_level in range(max_power, min_power, -power_delta):
+            print(f'Trying to cap at {cap_level}', end='. ')
+            try_count = 0
+            while try_count < max_tries:
+                try_count += 1
+                await self.bmc.set_cap_level(cap_level)
+                await asyncio.sleep(0.5)
+                new_cap_level = await self.bmc.current_cap_level
+                if new_cap_level != current_cap_level:
+                    assert new_cap_level < current_cap_level
+                    current_cap_level = new_cap_level
+                    capping_levels.add(new_cap_level)
+                    print(f' - set to {new_cap_level}', end='')
+                    break
+
+            print()
+
+        print(f'Capping levels: {", ".join(sorted(capping_levels))}')
+
 
 
 if __name__ == "__main__":
