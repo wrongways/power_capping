@@ -25,7 +25,7 @@ async def test_ipmi():
 async def test_redfish():
     sleep_time = 10
     collector = Collector(bmc_hostname, bmc_username, bmc_password, BMC_Type.REDFISH, 'http://t3r1nod23:5432',
-                          '/tmp/collector_test.db')
+                          '/tmp/collector_test.db', ipmitool_path='/usr/bin/ipmitool')
     await collector.bmc_connect()
     collect_thread = threading.Thread(target=asyncio.run, args=(collector.start_collect(),))
     collect_thread.start()
