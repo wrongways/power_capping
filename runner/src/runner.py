@@ -36,7 +36,7 @@ class Runner:
         """Establishes the min/max power consumption of the system under test."""
 
         sample_duration_secs = 10
-        min_power = min([self.bmc.current_power for _ in range(sample_duration_secs)])
+        min_power = min([await self.bmc.current_power for _ in range(sample_duration_secs)])
         await self.run_firestarter(load_pct=100, n_threads=0, runtime_secs=sample_duration_secs)
         max_power = 0
         for _ in range(sample_duration_secs):
