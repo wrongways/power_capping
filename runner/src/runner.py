@@ -38,6 +38,8 @@ class Runner:
         min_power, max_power = await self.get_min_max_power()
         max_power = ceil(int(max_power * 1.2) // 10) * 10  # Give a bit of headroom and round to 10
         capping_levels = await self.find_capping_levels(min_power, max_power)
+        print(f"Min power: {min_power} W, max power: {max_power} W")
+        print(f"Capping levels: {capping_levels}")
 
     async def get_min_max_power(self):
         """Establishes the min/max power consumption of the system under test.
@@ -53,7 +55,6 @@ class Runner:
             await asyncio.sleep(1)
             max_power = max(max_power, await self.bmc.current_power)
 
-        print(f"Min power: {min_power} W, max power: {max_power} W")
         return min_power, max_power
 
     async def run_firestarter(self, load_pct, n_threads, runtime_secs):
@@ -95,7 +96,7 @@ class Runner:
 
             print()
 
-        print(f'Capping levels: {capping_levels}')
+        return capping_levels
 
 
 
