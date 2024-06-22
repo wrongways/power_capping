@@ -69,11 +69,14 @@ if __name__ == "__main__":
         parser.add_argument('-t', '--bmc_type', required=True, choices=['ipmi', 'redfish'], help='BMC password')
         parser.add_argument('-a', '--agent_url', required=True,
                             help='hostname and port number of the agent running on the system under test')
-        parser.add_argument('-d', '--db_path', required=True,
-                            help='Path to the sqlite3 db on the local system holding the collected statistics')
-        parser.add_argument('-i', '--impi',
+        parser.add_argument('-d', '--db_path', metavar='<PATH TO DB FILE>', required=True,
+                            help='''Path to the sqlite3 db on the local system holding the collected statistics. \
+                            If the file does not exist, it will be created, otherwise the tables will be updated \
+                            with the data from this run.\
+                            ''')
+        parser.add_argument('-i', '--ipmitool_path',
                             required='ipmi' in sys.argv,
-                            metavar='path to ipmitool',
+                            metavar='<PATH TO IPMITOOL>',
                             default='/usr/bin/ipmitool',
                             help='Path to ipmitool on the local system. Only required if bmc_type="ipmi".')
 
