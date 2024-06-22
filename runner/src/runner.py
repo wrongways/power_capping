@@ -53,8 +53,8 @@ class Runner:
             'runtime_secs': runtime_secs,
         }
 
-        with aiohttp.ClientSession() as session:
-            with session.post(firestarter_endpoint, json=firestarter_args, ssl=False) as resp:
+        async with aiohttp.ClientSession() as session:
+            async session.post(firestarter_endpoint, json=firestarter_args, ssl=False) as resp:
                 if resp.status != HTTP_202_ACCEPTED:
                     print(f"Failed to launch firestarter: {resp.status}")
 
