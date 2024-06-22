@@ -91,8 +91,8 @@ if __name__ == "__main__":
 
         runner = Runner(**args)
         if args.get('bmc_type') == 'redfish':
-            runner.bmc.connect()
-            runner.collector.bmc.connect()
+            await runner.bmc.connect()
+            await runner.collector.bmc.connect()
         await runner.calibrate()
 
 
