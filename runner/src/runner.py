@@ -75,7 +75,7 @@ class Runner:
         """Determine the available capping levels."""
 
         power_delta = 10  # Watts
-        capping_levels = set()
+        capping_levels = []
         max_tries = 3
         current_cap_level = 999_999_999
         for cap_level in range(max_power, min_power, -power_delta):
@@ -88,14 +88,14 @@ class Runner:
                 new_cap_level = await self.bmc.current_cap_level
                 if new_cap_level != current_cap_level:
                     assert new_cap_level < current_cap_level
+                    capping_levels.append(new_cap_level)
                     current_cap_level = new_cap_level
-                    capping_levels.add(new_cap_level)
                     print(f' - set to {new_cap_level}', end='')
                     break
 
             print()
 
-        print(f'Capping levels: {sorted(capping_levels)}')
+        print(f'Capping levels: {capping_levels}')
 
 
 
