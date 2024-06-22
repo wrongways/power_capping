@@ -151,10 +151,10 @@ class RedfishBMC(BMC):
         }
         async with aiohttp.ClientSession() as session:
             async with session.patch(power_endpoint, headers=headers, json=cap_dict, ssl=False) as r:
-                response = await r.json()
+                response = await r.text()
                 if not r.ok:
                     raise RuntimeError(
-                            f'Failed to establish redfish session: {r.headers} {await r.text()}'
+                            f'Failed to establish redfish session: {r.headers} {response}'
                     )
                 print(f'\t{r.status=}\n\t{response=}')
 
