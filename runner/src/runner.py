@@ -95,7 +95,7 @@ class Runner:
 
             print()
 
-        print(f'Capping levels: {", ".join(sorted(capping_levels))}')
+        print(f'Capping levels: {sorted(capping_levels)}')
 
 
 
