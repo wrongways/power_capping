@@ -9,7 +9,7 @@ import sys
 
 import aiohttp
 
-from BMC import BMC_Type
+from BMC import BMC_Type, IpmiBMC, RedfishBMC
 from collector import Collector
 
 HTTP_202_ACCEPTED = 202
@@ -25,9 +25,11 @@ class Runner:
         # Establish BMC type
         bmc_type = BMC_Type.IPMI if bmc_type == 'ipmi' else BMC_Type.REDFISH
         if bmc_type == BMC_Type.IPMI:
+            self.bmc = IpmiBMC(bmc_hostname, bmc_username, bmc_password, ipmitool_path)
             self.collector = Collector(bmc_hostname, bmc_username, bmc_password, bmc_type, agent_url, db_path,
                                        ipmitool_path)
         else:
+            self.bmc = RedfishBMC(bmc_hostname, bmc_username, bmc_password)
             self.collector = Collector(bmc_hostname, bmc_username, bmc_password, bmc_type, agent_url, db_path)
 
     async def calibrate(self):
@@ -89,6 +91,7 @@ if __name__ == "__main__":
 
         runner = Runner(**args)
         if args.get('bmc_type') == 'redfish':
+            runner.bmc.connect()
             runner.collector.bmc.connect()
         await runner.calibrate()
 
