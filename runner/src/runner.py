@@ -83,10 +83,14 @@ if __name__ == "__main__":
         return parser.parse_args()
 
 
-    args = vars(parse_args())
-    print(args)
+    async def main():
+        args = vars(parse_args())
+        print(args)
 
-    runner = Runner(**args)
-    if args.get('bmc_type') == 'redfish':
-        runner.collector.bmc.connect()
-    runner.calibrate()
+        runner = Runner(**args)
+        if args.get('bmc_type') == 'redfish':
+            runner.collector.bmc.connect()
+        await runner.calibrate()
+
+
+    asyncio.run(main())
