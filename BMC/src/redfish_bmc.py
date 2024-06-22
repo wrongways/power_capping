@@ -151,12 +151,16 @@ class RedfishBMC(BMC):
         }
         async with aiohttp.ClientSession() as session:
             async with session.patch(power_endpoint, headers=headers, json=cap_dict, ssl=False) as r:
-                response = await r.text()
+                response = await r.json()
                 if not r.ok:
                     raise RuntimeError(
-                            f'Failed to establish redfish session: {r.headers} {response}'
+                            f'Failed to establish redfish session: {r.headers} {await r.text()}'
                     )
                 print(f'\t{r.status=}\n\t{response=}')
+
+                # TODO: Send setLimit request, ignore error if no such endpoint
+
+                return response
 
     async def deactivate_capping(self):
         pass
