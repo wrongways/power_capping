@@ -39,6 +39,9 @@ class Collector:
         if isinstance(self.bmc, RedfishBMC):
             await self.bmc.connect()
 
+    def bmc_type(self):
+        return "redfish" if isinstance(self.bmc, RedfishBMC) else "ipmi"
+
     def create_db_tables(self):
         create_bmc_table_sql = '''\
         create table if not exists bmc(
@@ -75,7 +78,8 @@ class Collector:
             board_name text,
             board_vendor text,
             board_version text,
-            sys_vendor text);
+            sys_vendor text,
+            bmc_type text);
         '''
 
         with sqlite3.connect(self.db_file) as db:
@@ -128,6 +132,7 @@ class Collector:
             async with session.get(endpoint) as resp:
                 if resp.status < 300:
                     system_info = await resp.json()
+                    system_info['bmc_type'] = self.bmc_type()
                     columns = ",".join(system_info)
                     placeholders = ",".join(list("?" * len(system_info)))
 
