@@ -1,6 +1,7 @@
 import argparse
 import asyncio
 import json
+import logging
 from pathlib import Path
 
 import aiohttp
@@ -9,6 +10,9 @@ from BMC.src.bmc import BMC
 
 REDFISH_ROOT = '/redfish/v1'
 KNOWN_MOTHERBOARDS = {'motherboard', 'self', '1'}
+
+logging.basicConfig(level='DEBUG')
+logger = logging.getLogger(__name__)
 
 
 class RedfishBMC(BMC):

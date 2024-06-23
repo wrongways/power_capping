@@ -2,10 +2,14 @@
 
 import argparse
 import asyncio
+import logging
 from enum import Enum
 from typing import NamedTuple
 
 from .bmc import BMC
+
+logging.basicConfig(level='DEBUG')
+logger = logging.getLogger(__name__)
 
 
 class Result(NamedTuple):

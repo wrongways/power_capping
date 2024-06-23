@@ -20,7 +20,7 @@ from runner import config
 
 HTTP_202_ACCEPTED = 202
 
-logging.basicConfig()
+logging.basicConfig(level='DEBUG')
 logger = logging.getLogger(__name__)
 
 

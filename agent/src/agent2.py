@@ -17,6 +17,7 @@ RAPL_SAMPLE_TIME_SECS = .25
 HTTP_202_ACCEPTED = 202
 HTTP_409_CONFLICT = 409
 
+logging.basicConfig(level='DEBUG')
 logger = logging.getLogger(__name__)
 
 firestarter_thread = None
