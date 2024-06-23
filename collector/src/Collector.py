@@ -48,43 +48,20 @@ class Collector:
         '''
 
         create_rapl_table_sql = '''\
-        create table if not exists rapl(
-            timestamp text not null, -- ISO8601 strings ("YYYY-MM-DD HH:MM:SS")
-            package text not null,
-            power integer not null check (power > 0),
-            primary key (timestamp, package));'''
-
-        create_system_info_table_sql = '''\
-        create table if not exists system_info(
-            hostname text not null,
-            os_name text not null,
-            architecture text not null,
-            cpus integer not null,
-            threads_per_core integer,
-            cores_per_socket integer,
-            sockets integer,
-            vendor_id text,
-            model_name text,
-            cpu_mhz integer,
-            cpu_max_mhz integer,
-            cpu_min_mhz integer,
-            bios_date text,
-            bios_vendor text,
-            bios_version text,
-            board_name text,
-            board_vendor text,
-            board_version text,
-            sys_vendor text,
-            bmc_type text);
-        '''
+            create table if not exists rapl(
+                timestamp text not null, -- ISO8601 strings ("YYYY-MM-DD HH:MM:SS")
+                package text not null,
+                power integer not null check (power > 0),
+                primary key (timestamp, package)
+            );
+            '''
 
         with sqlite3.connect(self.db_file) as db:
             db.execute(create_bmc_table_sql)
             db.execute(create_rapl_table_sql)
-            db.execute(create_system_info_table_sql)
 
     async def start_collect(self, freq=1):
-        await self.collect_system_information()
+
         sample_interval = timedelta(seconds=1 / freq)
         next_collect_timestamp = dt.now(UTC)
         with sqlite3.connect(self.db_file) as db:
@@ -121,23 +98,6 @@ class Collector:
             'bmc_power': bmc_power,
             'bmc_cap_level': bmc_cap_level
         }
-
-    async def collect_system_information(self):
-        endpoint = self.agent_url + '/system_info'
-        async with aiohttp.ClientSession() as session:
-            async with session.get(endpoint) as resp:
-                if resp.status < 300:
-                    system_info = await resp.json()
-                    system_info['bmc_type'] = self.bmc_type()
-                    columns = ",".join(system_info)
-                    placeholders = ",".join(list("?" * len(system_info)))
-
-                    sql = f'insert into system_info ({columns}) values ({placeholders});'
-                    logger.debug(f'System info sql: {sql}')
-                    with sqlite3.connect(self.db_file) as db:
-                        db.execute(sql, tuple(system_info.values()))
-                else:
-                    logger.error("Failed to get system information. Status code: {resp.status}\n{resp}")
 
     def save_sample(self, db, timestamp, bmc_sample, agent_sample):
         db.execute('begin')
