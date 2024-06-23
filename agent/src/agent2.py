@@ -1,4 +1,5 @@
 import argparse
+import json
 import logging
 import subprocess
 import threading
@@ -130,8 +131,8 @@ async def firestarter(request: web.Request):
         firestarter_thread.join()
 
     # pull out the request arguments
-    json_body = await request.post()
-    # logger.debug(json.dumps(json_body, indent=3, sort_keys=True))
+    json_body = await request.json()
+    print("Request args:", json.dumps(json_body, indent=3, sort_keys=True))
     pprint(json_body)
 
     firestarter_thread = threading.Thread(target=launch_firestarter, args=[json_body],
