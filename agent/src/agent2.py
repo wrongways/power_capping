@@ -100,6 +100,7 @@ def launch_firestarter(args):
         threads → n_threads
     """
 
+    print(f"Firestarter call: {args}")
     runtime_secs = args.get('runtime_secs', 30)
     pct_load = args.get('pct_load', 100)
     n_threads = args.get('n_threads', 0)

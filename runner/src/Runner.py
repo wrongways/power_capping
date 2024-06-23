@@ -5,6 +5,7 @@ to establish min and max power consumption (without loading any GPUs) and the mi
 """
 import argparse
 import asyncio
+import json
 import sqlite3
 import sys
 from datetime import datetime, UTC
@@ -81,6 +82,7 @@ class Runner:
             'runtime_secs': runtime_secs,
         }
 
+        print(f"Launching firestarter: {json.dumps(firestarter_args, indent=3)}")
         async with aiohttp.ClientSession() as session:
             async with session.post(firestarter_endpoint, json=firestarter_args, ssl=False) as resp:
                 if resp.status != HTTP_202_ACCEPTED:
