@@ -97,11 +97,11 @@ class Runner:
             'runtime_secs': runtime_secs,
         }
 
-        print(f"Launching firestarter: {json.dumps(firestarter_args, indent=3)}")
+        logger.debug(f"Launching firestarter: {json.dumps(firestarter_args, indent=3)}")
         async with aiohttp.ClientSession() as session:
             async with session.post(firestarter_endpoint, json=firestarter_args, ssl=False) as resp:
                 if resp.status != HTTP_202_ACCEPTED:
-                    print(f"Failed to launch firestarter: {resp.status} - {await resp.json()}")
+                    logger.error(f"Failed to launch firestarter: {resp.status} - {await resp.json()}")
 
     async def run_test(self, cap_from, cap_to, n_steps=1, load_pct=100, n_threads=0,
                        pause_load_between_cap_settings=False
@@ -115,37 +115,41 @@ class Runner:
         assert n_steps > 0
 
         if pause_load_between_cap_settings:
-            firestarter_runtime = warmup_seconds + per_step_runtime_seconds
+            firestarter_runtime = per_step_runtime_seconds
         else:
             firestarter_runtime = warmup_seconds + n_steps * per_step_runtime_seconds
 
         cap_delta = (cap_from - cap_to) // n_steps
-
-        # Initial conditions - set cap from value
-        self.log_cap_level(cap_from)
-
-        await self.bmc.set_cap_level(cap_from)
-        await asyncio.sleep(inter_step_pause_seconds)
-
-        cap_level = cap_from
         start_time = datetime.now(UTC)
+
         if pause_load_between_cap_settings:
+            # Initial conditions - set cap from value
+            self.log_cap_level(cap_from)
+            await self.bmc.set_cap_level(cap_from)
+            await asyncio.sleep(inter_step_pause_seconds)
+
+            cap_level = cap_from
             for _ in range(n_steps):
                 await self.launch_firestarter(load_pct, n_threads, firestarter_runtime)
-                await asyncio.sleep(warmup_seconds)
+                await asyncio.sleep(firestarter_runtime + inter_step_pause_seconds)
                 cap_level -= cap_delta
                 self.log_cap_level(cap_level)
                 await self.bmc.set_cap_level(cap_level)
-                await asyncio.sleep(per_step_runtime_seconds + inter_step_pause_seconds)
 
         else:
+            cap_level = config.TestConfig.uncapped_power
+            self.log_cap_level(cap_level)
+            await self.bmc.set_cap_level(cap_level)
             await self.launch_firestarter(load_pct, n_threads, firestarter_runtime)
             await asyncio.sleep(warmup_seconds)
+            cap_level = cap_from
             for _ in range(n_steps):
-                cap_level -= cap_delta
                 self.log_cap_level(cap_level)
                 await self.bmc.set_cap_level(cap_level)
                 await asyncio.sleep(per_step_runtime_seconds)
+                cap_level -= cap_delta
+
+            await asyncio.sleep(inter_step_pause_seconds)
 
         end_time = datetime.now(UTC)
         self.log_test_run(start_time, end_time, cap_from, cap_to, n_steps, load_pct, n_threads,
@@ -261,25 +265,23 @@ if __name__ == "__main__":
         await runner.bmc_connect()
         await collector.bmc_connect()
         await runner.collect_system_information()
-        logger.debug("Launching collector")
+        logger.info("Launching collector")
         collect_thread = threading.Thread(target=asyncio.run, args=(collector.start_collect(),))
         collect_thread.start()
-        logger.debug("Started collect thread")
-        logger.debug("Starting runner.run_test()")
+        logger.info("Starting campaign")
 
         await runner.run_campaign(min_load=90, max_load=100, load_delta=5,
-                                  min_threads=200, max_threads=224, threads_delta=12,
+                                  min_threads=192, max_threads=224, threads_delta=8,
                                   cap_min=400, cap_max=1000, cap_delta=300, up_down=UpDown.down | UpDown.up)
 
         await runner.run_campaign(min_load=90, max_load=100, load_delta=5,
-                                  min_threads=200, max_threads=224, threads_delta=12,
+                                  min_threads=192, max_threads=224, threads_delta=8,
                                   cap_min=400, cap_max=1000, cap_delta=600, up_down=UpDown.down | UpDown.up)
 
-        logger.debug("Run test ended, halting collector")
+        logger.info("Run test ended, halting collector")
         collector.end_collect()
-        logger.debug("Joining collect thread")
         collect_thread.join()
-        logger.debug("Collector ended")
+        logger.info("Collector ended")
 
 
     asyncio.run(main())
