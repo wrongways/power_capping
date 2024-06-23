@@ -45,6 +45,9 @@ class Runner:
         max_power = ceil(int(max_power * 1.2) // 10) * 10  # Give a bit of headroom and round to 10
         print(f"Min power: {min_power} W, max power: {max_power} W")
 
+        # Pause a while before returning to allow firestarter to finish
+        await asyncio.sleep(2)
+
     async def get_min_max_power(self):
         """Establishes the min/max power consumption of the system under test.
 
