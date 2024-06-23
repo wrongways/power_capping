@@ -59,6 +59,7 @@ class Runner:
     async def collect_system_information(self):
         """Save system information from agent on SUT, complete with BMC and power info into db"""
 
+        logger.debug("Enter collect_system_information()")
         min_power, max_power = await self.calibrate()
 
         async with aiohttp.ClientSession() as session:
@@ -79,11 +80,13 @@ class Runner:
                     logger.debug(f'System info sql: {sql}')
 
                     # Execute sql insert
+                    logger.debug(f'SystemInfo insert: {sql}')
+                    logger.debug(tuple(system_info.values()))
+
                     with sqlite3.connect(self.db_path) as db:
                         db.execute(sql, tuple(system_info.values()))
                 else:
                     logger.error("Failed to get system information. Status code: {resp.status}\n{resp}")
-
 
     async def get_min_max_power(self):
         """Establishes the min/max power consumption of the system under test.
@@ -95,7 +98,7 @@ class Runner:
 
         # Determine min power - assumes system idle
         min_power = 999_999_999
-        for _ in range(sample_duration_secs + 1):
+        for _ in range(sample_duration_secs):
             await asyncio.sleep(1)
             min_power = min(min_power, await self.bmc.current_power)
 
@@ -247,7 +250,7 @@ if __name__ == "__main__":
             await runner.collector.bmc.connect()
 
         await runner.collect_system_information()
-        await runner.run_test(cap_from=400, cap_to=800, load_pct=100, n_threads=0,
+        await runner.run_test(cap_from=400, cap_to=800, n_steps=2, load_pct=100, n_threads=0,
                               pause_load_between_cap_settings=False)
 
     asyncio.run(main())
