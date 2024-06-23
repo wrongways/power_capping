@@ -86,7 +86,7 @@ class Runner:
                     with sqlite3.connect(self.db_path) as db:
                         db.execute(sql, tuple(system_info.values()))
                 else:
-                    print("Failed to get system information. Status code: {resp.status}\n{resp}")
+                    print(f"Failed to get system information. Status code: {resp.status}\n{resp}")
 
     async def get_min_max_power(self):
         """Establishes the min/max power consumption of the system under test.
@@ -141,8 +141,7 @@ class Runner:
         if pause_load_between_cap_settings:
             firestarter_runtime = warmup_seconds + per_step_runtime_seconds
         else:
-            firestarter_runtime = warmup_seconds + n_steps * per_step_runtime_seconds + (
-                        n_steps - 1) * inter_step_pause_seconds
+            firestarter_runtime = warmup_seconds + n_steps * per_step_runtime_seconds
 
         cap_delta = (cap_from - cap_to) // n_steps
 
@@ -157,21 +156,20 @@ class Runner:
             if pause_load_between_cap_settings:
                 for _ in range(n_steps):
                     await self.launch_firestarter(load_pct, n_threads, firestarter_runtime)
-                    await asyncio.sleep(firestarter_runtime)
+                    await asyncio.sleep(warmup_seconds)
                     cap_level -= cap_delta
                     self.log_cap_level(db, cap_level)
                     await self.bmc.set_cap_level(cap_level)
-                    await asyncio.sleep(inter_step_pause_seconds)
+                    await asyncio.sleep(per_step_runtime_seconds + inter_step_pause_seconds)
 
             else:
                 await self.launch_firestarter(load_pct, n_threads, firestarter_runtime)
                 await asyncio.sleep(warmup_seconds)
                 for _ in range(n_steps):
-                    await asyncio.sleep(per_step_runtime_seconds)
                     cap_level -= cap_delta
                     self.log_cap_level(db, cap_level)
                     await self.bmc.set_cap_level(cap_level)
-                    await asyncio.sleep(inter_step_pause_seconds)
+                    await asyncio.sleep(per_step_runtime_seconds)
 
             end_time = datetime.now(UTC)
             self.log_test_run(db, start_time, end_time, cap_from, cap_to, n_steps, load_pct, n_threads,
