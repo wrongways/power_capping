@@ -162,7 +162,7 @@ class Runner:
                      pause_load_between_cap_settings
                      ):
         sql = '''\
-        insert into tests(start_time, end_time, cap_from, cap_to, load_pct, n_threads, pause_load_between_cap_settings)
+        insert into tests(start_time, end_time, cap_from, cap_to, n_steps, load_pct, n_threads, pause_load_between_cap_settings)
         values(?, ?, ?, ?, ?, ?, ?, ?);'''
         data = (start_time, end_time, cap_from, cap_to, n_steps, load_pct, n_threads, pause_load_between_cap_settings)
         db.execute(sql, data)
