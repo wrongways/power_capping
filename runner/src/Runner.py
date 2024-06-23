@@ -133,7 +133,7 @@ class Runner:
         """Creates the capping and test tables in the db."""
 
         capping_table_sql = 'create table if not exists capping_commands(timestamp text, cap_level integer);'
-        test_table_sql = '''create table tests(
+        test_table_sql = '''create table if not exists tests(
             start_time text not null, 
             end_time text not null, 
             cap_from integer not null,
