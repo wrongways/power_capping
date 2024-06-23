@@ -8,7 +8,7 @@ import asyncio
 import json
 import sqlite3
 import sys
-from datetime import datetime, UTC
+from datetime import date, datetime, UTC
 from math import ceil
 
 import aiohttp
@@ -29,6 +29,7 @@ class Runner:
         self.db_path = db_path
         self.create_db_tables()
         sqlite3.register_adapter(datetime, lambda timestamp: timestamp.isoformat())
+        sqlite3.register_adapter(date, lambda timestamp: timestamp.isoformat())
 
         # Establish BMC type
         bmc_type = BMC_Type.IPMI if bmc_type == 'ipmi' else BMC_Type.REDFISH
@@ -116,7 +117,7 @@ class Runner:
             cap_level = cap_from
             start_time = datetime.now(UTC)
             if pause_load_between_cap_settings:
-                for _ in range(n_steps + 1):
+                for _ in range(n_steps):
                     await self.launch_firestarter(load_pct, n_threads, firestarter_runtime)
                     await asyncio.sleep(firestarter_runtime)
                     cap_level -= cap_delta
@@ -127,7 +128,7 @@ class Runner:
             else:
                 await self.launch_firestarter(load_pct, n_threads, firestarter_runtime)
                 await asyncio.sleep(warmup_seconds)
-                for _ in range(n_steps + 1):
+                for _ in range(n_steps):
                     await asyncio.sleep(per_step_runtime_seconds)
                     cap_level -= cap_delta
                     self.log_cap_level(db, cap_level)
