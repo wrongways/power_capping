@@ -267,7 +267,7 @@ if __name__ == "__main__":
         logger.debug("Started collect thread")
         logger.debug("Starting runner.run_test()")
 
-        await runner.run_campaign(90, 100, 5,
+        await runner.run_campaign(min_load=90, max_load=100, load_delta=5,
                                   min_threads=200, max_threads=224, threads_delta=12,
                                   cap_min=600, cap_max=1000, cap_delta=400, up_down=UpDown.down | UpDown.up)
 
