@@ -75,7 +75,7 @@ class Runner:
                     print(f'SystemInfo insert: {sql}')
                     print(tuple(system_info.values()))
 
-                    with sqlite3.connect(self.db_path) as db:
+                    with sqlite3.connect(self.db_path, check_same_thread=False) as db:
                         db.execute(sql, tuple(system_info.values()))
                 else:
                     print(f"Failed to get system information. Status code: {resp.status}\n{resp}")
@@ -137,7 +137,7 @@ class Runner:
 
         cap_delta = (cap_from - cap_to) // n_steps
 
-        with sqlite3.connect(self.db_path) as db:
+        with sqlite3.connect(self.db_path, check_same_thread=False) as db:
             # Initial conditions - set cap from value
             self.log_cap_level(db, cap_from)
             await self.bmc.set_cap_level(cap_from)
@@ -207,7 +207,7 @@ class Runner:
             );
                 '''
 
-        with sqlite3.connect(self.db_path) as db:
+        with sqlite3.connect(self.db_path, check_same_thread=False) as db:
             db.execute(capping_table_sql)
             db.execute(test_table_sql)
             db.execute(system_info_table_sql)

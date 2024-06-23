@@ -56,7 +56,7 @@ class Collector:
             );
             '''
 
-        with sqlite3.connect(self.db_path) as db:
+        with sqlite3.connect(self.db_path, check_same_thread=False) as db:
             db.execute(create_bmc_table_sql)
             db.execute(create_rapl_table_sql)
 
@@ -64,7 +64,7 @@ class Collector:
 
         sample_interval = timedelta(seconds=1 / freq)
         next_collect_timestamp = dt.now(UTC)
-        with sqlite3.connect(self.db_path) as db:
+        with sqlite3.connect(self.db_path, check_same_thread=False) as db:
             while self.do_collect:
                 timestamp = dt.now(UTC)
                 if (sleep_time := (next_collect_timestamp - timestamp).total_seconds()) > 0:
