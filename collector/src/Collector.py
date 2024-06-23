@@ -1,5 +1,6 @@
 import asyncio
 import datetime
+import json
 import logging
 import sqlite3
 from datetime import datetime as dt, timedelta, UTC
@@ -74,7 +75,8 @@ class Collector:
             bmc_sample = await self.sample_bmc()
             agent_sample = await self.sample_agent()
             self.save_sample(timestamp, bmc_sample, agent_sample)
-            logger.debug(bmc_sample, "\n", agent_sample)
+            logger.debug(json.dumps(bmc_sample, indent=3))
+            logger.debug(json.dumps(agent_sample, indent=3))
 
     def end_collect(self):
         logger.debug("Stopping Collection")
