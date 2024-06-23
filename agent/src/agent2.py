@@ -105,6 +105,7 @@ def launch_firestarter(args):
     n_threads = args.get('n_threads', 0)
     command_line = f'{firestarter_path} --quiet --timeout {runtime_secs} --load {pct_load} --threads {n_threads}'
     logger.debug(f"Firestarter command: {command_line}")
+    print(f"Firestarter command: {command_line}")
 
     # Launch the subprocess, sending the firestarter banner to /dev/null
     subprocess.run(command_line.split(), stdout=subprocess.DEVNULL)
