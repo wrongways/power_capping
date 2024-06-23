@@ -29,20 +29,20 @@ class RedfishBMC(BMC):
 
         session_endpoint = f'{self.authenticated_root}/SessionService/Sessions/'
         credentials = {"UserName": self.bmc_username, "Password": self.bmc_password}
-        print(f'credentials: {json.dumps(credentials)}')
+
         async with aiohttp.ClientSession() as session:
             # headers = {'content-type': 'application/json'}
             async with session.post(session_endpoint, json=credentials, ssl=False) as r:
                 json_body = await r.json()
-                print(json.dumps(json_body, sort_keys=True, indent=2))
-                print(await r.text())
+                logger.debug(json.dumps(json_body, sort_keys=True, indent=2))
+                logger.debug(await r.text())
                 if not (200 <= r.status < 300):
                     raise RuntimeError(
                             f'Failed to establish redfish session: Status: {r.status} Headers:{r.raw_headers}'
                     )
                 self.token = r.headers.get('X-Auth-Token')
                 self.session_id = json_body.get('Id')
-                print(f'Connect status code: {r.status}')
+                logger.debug(f'Connect status code: {r.status}')
 
     async def disconnect(self):
         """Disconnects from a redfish session."""
@@ -64,7 +64,6 @@ class RedfishBMC(BMC):
         """
 
         if self._chassis is not None:
-            print(f'Returning cached chassis: {self._chassis}')
             return self._chassis
 
         print('Fetching /Chassis members')
@@ -72,15 +71,16 @@ class RedfishBMC(BMC):
         headers = {'X-Auth-Token': self.token}
         async with aiohttp.ClientSession() as session:
             async with session.get(chassis_endpoint, headers=headers, ssl=False) as r:
-                json_body = await r.json()
-                print(json.dumps(json_body, sort_keys=True, indent=2))
                 if not r.ok:
+                    logger.error(
+                        f'Failed to establish redfish session, authentication failed, Bailing. {r.headers}, {json.dumps(json_body, sort_keys=True, indent=2)}')
                     raise RuntimeError(
                             f'Failed to establish redfish session: {r.headers} {json_body}'
                     )
 
                 # print(json.dumps(json_body, sort_keys=True, indent=2))
                 # Chassis are held under the '@odata.id' key in the 'Members' array
+                json_body = await r.json()
                 paths = [member.get('@odata.id') for member in json_body.get('Members')]
                 all_chassis = [str(Path(path).name) for path in paths]
                 self.chassis = all_chassis
@@ -127,17 +127,18 @@ class RedfishBMC(BMC):
         headers = {'X-Auth-Token': self.token}
         async with aiohttp.ClientSession() as session:
             async with session.get(power_endpoint, headers=headers, ssl=False) as r:
-                json_body = await r.json()
+
                 if not r.ok:
+                    lo
                     raise RuntimeError(
                             f'''\
                             Failed to establish redfish session:
                             Response headers: {r.headers}
-                            Response body:
-                            {json.dumps(json_body, sort_keys=True, indent=2)}
+                            Response body: {r.text()}
                             '''
                     )
                 print(f'\tResponse status: {r.status=}')
+                json_body = await r.json()
                 return int(json_body.get('PowerControl', [{}])[0].get('PowerLimit', {}).get('LimitInWatts', 0))
 
     async def set_cap_level(self, new_cap_level: int):

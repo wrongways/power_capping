@@ -269,7 +269,11 @@ if __name__ == "__main__":
 
         await runner.run_campaign(min_load=90, max_load=100, load_delta=5,
                                   min_threads=200, max_threads=224, threads_delta=12,
-                                  cap_min=600, cap_max=1000, cap_delta=400, up_down=UpDown.down | UpDown.up)
+                                  cap_min=400, cap_max=1000, cap_delta=300, up_down=UpDown.down | UpDown.up)
+
+        await runner.run_campaign(min_load=90, max_load=100, load_delta=5,
+                                  min_threads=200, max_threads=224, threads_delta=12,
+                                  cap_min=400, cap_max=1000, cap_delta=600, up_down=UpDown.down | UpDown.up)
 
         logger.debug("Run test ended, halting collector")
         collector.end_collect()
