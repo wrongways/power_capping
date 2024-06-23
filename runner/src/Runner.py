@@ -191,7 +191,7 @@ class Runner:
 
         n_steps = (cap_max - cap_min) // cap_delta
         if load_delta > 0:
-            for load in range(min_load, max_load, load_delta):
+            for load in range(min_load, max_load + 1, load_delta):
                 for pause in (True, False):
                     if up_down & UpDown.up > 0:
                         await self.run_test(cap_min, cap_max, n_steps, load_pct=load, n_threads=0,
@@ -201,7 +201,7 @@ class Runner:
                                             pause_load_between_cap_settings=pause)
 
         if threads_delta > 0:
-            for n_threads in range(min_threads, max_threads, threads_delta):
+            for n_threads in range(min_threads, max_threads + 1, threads_delta):
                 for pause in (True, False):
                     if up_down & UpDown.up > 0:
                         await self.run_test(cap_min, cap_max, n_steps, load_pct=100, n_threads=n_threads,
@@ -280,9 +280,8 @@ if __name__ == "__main__":
         args = vars(parse_args())
         runner = Runner(**args)
         collector = Collector(**args)
-        await runner.bmc.connect()
+        await runner.bmc_connect()
         await collector.bmc_connect()
-
         await runner.collect_system_information()
         logger.debug("Launching collector")
         collect_thread = threading.Thread(target=asyncio.run, args=(collector.start_collect(),))
@@ -293,7 +292,7 @@ if __name__ == "__main__":
         #                       pause_load_between_cap_settings=False)
 
         await runner.run_campaign(90, 100, 5,
-                                  min_threads=220, max_threads=224, threads_delta=12,
+                                  min_threads=200, max_threads=224, threads_delta=12,
                                   cap_min=500, cap_max=800, cap_delta=150, up_down=UpDown.down)
 
         logger.debug("Run test ended, halting collector")
