@@ -5,13 +5,16 @@ to establish min and max power consumption (without loading any GPUs) and the mi
 """
 import argparse
 import asyncio
+import sqlite3
 import sys
+from datetime import datetime, UTC
 from math import ceil
 
 import aiohttp
 
 from BMC import BMC_Type, IpmiBMC, RedfishBMC
 from collector import Collector
+from runner import TestConfig
 
 HTTP_202_ACCEPTED = 202
 
@@ -22,6 +25,9 @@ class Runner:
     def __init__(self, bmc_hostname, bmc_username, bmc_password, bmc_type, agent_url, db_path, ipmitool_path=None):
         # Ensure that agent url starts with http
         self.agent_url = agent_url if agent_url.startswith('http') else f'http://{agent_url}'
+        self.db_path = db_path
+        self.create_db_tables()
+        sqlite3.register_adapter(datetime, lambda timestamp: timestamp.isoformat())
 
         # Establish BMC type
         bmc_type = BMC_Type.IPMI if bmc_type == 'ipmi' else BMC_Type.REDFISH
@@ -37,9 +43,9 @@ class Runner:
         """Establish min/max power draws and capping levels"""
         min_power, max_power = await self.get_min_max_power()
         max_power = ceil(int(max_power * 1.2) // 10) * 10  # Give a bit of headroom and round to 10
-        capping_levels = await self.find_capping_levels(min_power, max_power)
+        # capping_levels = await self.find_capping_levels(min_power, max_power)
         print(f"Min power: {min_power} W, max power: {max_power} W")
-        print(f"Capping levels: {capping_levels}")
+        # print(f"Capping levels: {capping_levels}")
 
     async def get_min_max_power(self):
         """Establishes the min/max power consumption of the system under test.
@@ -49,7 +55,7 @@ class Runner:
 
         sample_duration_secs = 10
         min_power = min([await self.bmc.current_power for _ in range(sample_duration_secs)])
-        await self.run_firestarter(load_pct=100, n_threads=0, runtime_secs=30)
+        await self.launch_firestarter(load_pct=100, n_threads=0, runtime_secs=30)
         max_power = 0
         for _ in range(sample_duration_secs):
             await asyncio.sleep(1)
@@ -57,7 +63,7 @@ class Runner:
 
         return min_power, max_power
 
-    async def run_firestarter(self, load_pct, n_threads, runtime_secs):
+    async def launch_firestarter(self, load_pct, n_threads, runtime_secs):
         """Get the agent to run firestarter with the provided parameters."""
 
         firestarter_endpoint = f'{self.agent_url}/firestarter'
@@ -72,32 +78,113 @@ class Runner:
                 if resp.status != HTTP_202_ACCEPTED:
                     print(f"Failed to launch firestarter: {resp.status}")
 
-    async def find_capping_levels(self, min_power, max_power):
-        """Determine the available capping levels."""
+    # async def find_capping_levels(self, min_power, max_power):
+    #     """Determine the available capping levels."""
+    #
+    #     power_delta = 10  # Watts
+    #     capping_levels = []
+    #     max_tries = 3
+    #     current_cap_level = 999_999_999
+    #     for cap_level in range(max_power, min_power, -power_delta):
+    #         print(f'Trying to cap at {cap_level}', end='. ')
+    #         try_count = 0
+    #         while try_count < max_tries:
+    #             try_count += 1
+    #             await self.bmc.set_cap_level(cap_level)
+    #             await asyncio.sleep(0.5)
+    #             new_cap_level = await self.bmc.current_cap_level
+    #             if new_cap_level != current_cap_level:
+    #                 assert new_cap_level < current_cap_level
+    #                 capping_levels.append(new_cap_level)
+    #                 current_cap_level = new_cap_level
+    #                 print(f' - set to {new_cap_level}', end='')
+    #                 break
+    #
+    #         print()
+    #
+    #     return capping_levels
 
-        power_delta = 10  # Watts
-        capping_levels = []
-        max_tries = 3
-        current_cap_level = 999_999_999
-        for cap_level in range(max_power, min_power, -power_delta):
-            print(f'Trying to cap at {cap_level}', end='. ')
-            try_count = 0
-            while try_count < max_tries:
-                try_count += 1
-                await self.bmc.set_cap_level(cap_level)
-                await asyncio.sleep(0.5)
-                new_cap_level = await self.bmc.current_cap_level
-                if new_cap_level != current_cap_level:
-                    assert new_cap_level < current_cap_level
-                    capping_levels.append(new_cap_level)
-                    current_cap_level = new_cap_level
-                    print(f' - set to {new_cap_level}', end='')
-                    break
+    async def run_test(self, cap_from, cap_to, n_steps=1, load_pct=100, n_threads=0,
+                       pause_load_between_cap_settings=False
+                       ):
+        """Run a given test configuration"""
 
-            print()
+        warmup_seconds = TestConfig.warmup_seconds
+        per_step_runtime_seconds = TestConfig.per_step_runtime_seconds
+        inter_step_pause_seconds = TestConfig.inter_step_pause_seconds
 
-        return capping_levels
+        assert n_steps > 0
 
+        if pause_load_between_cap_settings:
+            firestarter_runtime = warmup_seconds + per_step_runtime_seconds
+        else:
+            firestarter_runtime = warmup_seconds + n_steps * per_step_runtime_seconds + (
+                        n_steps - 1) * inter_step_pause_seconds
+
+        cap_delta = (cap_from - cap_to) // n_steps
+
+        with sqlite3.connect(self.db_path) as db:
+            # Initial conditions - set cap from value
+            self.log_cap_level(db, cap_from)
+            await self.bmc.set_cap_level(cap_from)
+            await asyncio.sleep(inter_step_pause_seconds)
+
+            cap_level = cap_from
+            start_time = datetime.now(UTC)
+            if pause_load_between_cap_settings:
+                for _ in range(n_steps + 1):
+                    await self.launch_firestarter(load_pct, n_threads, firestarter_runtime)
+                    await asyncio.sleep(firestarter_runtime)
+                    cap_level -= cap_delta
+                    self.log_cap_level(db, cap_level)
+                    await self.bmc.set_cap_level(cap_level)
+                    await asyncio.sleep(inter_step_pause_seconds)
+
+            else:
+                await self.launch_firestarter(load_pct, n_threads, firestarter_runtime)
+                await asyncio.sleep(warmup_seconds)
+                for _ in range(n_steps + 1):
+                    await asyncio.sleep(per_step_runtime_seconds)
+                    cap_level -= cap_delta
+                    self.log_cap_level(db, cap_level)
+                    await self.bmc.set_cap_level(cap_level)
+                    await asyncio.sleep(inter_step_pause_seconds)
+
+            end_time = datetime.now(UTC)
+            self.log_test_run(db, start_time, end_time, load_pct, n_threads, cap_from, cap_to,
+                              pause_load_between_cap_settings)
+
+    def create_db_tables(self):
+        """Creates the capping and test tables in the db."""
+
+        capping_table_sql = 'create table if not exists capping_commands(timestamp text, cap_level integer);'
+        test_table_sql = '''create table tests(
+            start_time text not null, 
+            end_time text not null, 
+            load_pct integer not null, 
+            n_threads integer not null,
+            cap_from integer not null,
+            cap_to integer not null,
+            pause_load_between_cap_settings integer); -- sqlite does not have boolean type
+            '''
+
+        with sqlite3.connect(self.db_path) as db:
+            db.execute(capping_table_sql)
+            db.execute(test_table_sql)
+
+    @staticmethod
+    def log_test_run(db, start_time, end_time, load_pct, n_threads, cap_from, cap_to, pause_load_between_cap_settings):
+        sql = '''\
+        insert into tests(start_time, end_time, load_pct, n_threads, cap_from, cap_to, pause_load_between_cap_settings)
+        values(?, ?, ?, ?, ?, ?, ?);'''
+        data = (start_time, end_time, load_pct, n_threads, cap_from, cap_to, pause_load_between_cap_settings)
+        db.execute(sql, data)
+
+    @staticmethod
+    def log_cap_level(db, cap_level):
+        sql = 'insert into capping_commands(timestamp, cap_level) values(?, ?);'
+        data = (datetime.now(UTC), cap_level)
+        db.execute(sql, data)
 
 
 if __name__ == "__main__":
@@ -135,6 +222,7 @@ if __name__ == "__main__":
             await runner.bmc.connect()
             await runner.collector.bmc.connect()
         await runner.calibrate()
-
+        await runner.run_test(cap_from=400, cap_to=800, load_pct=100, n_threads=0,
+                              pause_load_between_cap_settings=False)
 
     asyncio.run(main())
