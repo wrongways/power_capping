@@ -32,8 +32,8 @@ class Runner:
         self.agent_url = agent_url if agent_url.startswith('http') else f'http://{agent_url}'
         self.db_path = db_path
         self.create_db_tables()
-        sqlite3.register_adapter(datetime, lambda timestamp: timestamp.isoformat('seconds'))
-        sqlite3.register_adapter(date, lambda timestamp: timestamp.isoformat('seconds'))
+        sqlite3.register_adapter(datetime, lambda timestamp: timestamp.isoformat(timespec='seconds'))
+        sqlite3.register_adapter(date, lambda timestamp: timestamp.isoformat(timespec='seconds'))
 
         # Establish BMC type
         bmc_type = BMC_Type.IPMI if bmc_type == 'ipmi' else BMC_Type.REDFISH

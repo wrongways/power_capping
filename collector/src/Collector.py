@@ -18,8 +18,8 @@ class Collector:
         self.agent_url = agent_url if agent_url.startswith('http') else f'http://{agent_url}'
         self.agent_url.rstrip('/')
         self.db_file = db_file
-        sqlite3.register_adapter(datetime.date, lambda timestamp: timestamp.isoformat('seconds'))
-        sqlite3.register_adapter(datetime.datetime, lambda timestamp: timestamp.isoformat('seconds'))
+        sqlite3.register_adapter(datetime.date, lambda timestamp: timestamp.isoformat(timespec='seconds'))
+        sqlite3.register_adapter(datetime.datetime, lambda timestamp: timestamp.isoformat(timespec='seconds'))
         self.create_db_tables()
 
         self.http_session = None
