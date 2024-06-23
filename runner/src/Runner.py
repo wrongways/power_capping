@@ -59,7 +59,7 @@ class Runner:
     async def collect_system_information(self):
         """Save system information from agent on SUT, complete with BMC and power info into db"""
 
-        logger.debug("Enter collect_system_information()")
+        print("Enter collect_system_information()")
         min_power, max_power = await self.calibrate()
 
         async with aiohttp.ClientSession() as session:
@@ -80,13 +80,13 @@ class Runner:
                     logger.debug(f'System info sql: {sql}')
 
                     # Execute sql insert
-                    logger.debug(f'SystemInfo insert: {sql}')
-                    logger.debug(tuple(system_info.values()))
+                    print(f'SystemInfo insert: {sql}')
+                    print(tuple(system_info.values()))
 
                     with sqlite3.connect(self.db_path) as db:
                         db.execute(sql, tuple(system_info.values()))
                 else:
-                    logger.error("Failed to get system information. Status code: {resp.status}\n{resp}")
+                    print("Failed to get system information. Status code: {resp.status}\n{resp}")
 
     async def get_min_max_power(self):
         """Establishes the min/max power consumption of the system under test.
