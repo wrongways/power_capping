@@ -203,9 +203,7 @@ class Runner:
                 board_vendor text,
                 board_version text,
                 sys_vendor text,
-                bmc_type text,
-                min_power integer,
-                max_power integer
+                bmc_type text
             );
                 '''
 
