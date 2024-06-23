@@ -8,13 +8,8 @@ import aiohttp
 
 from BMC import BMC_Type, IpmiBMC, RedfishBMC
 
+logging.basicConfig(level='DEBUG')
 logger = logging.getLogger(__name__)
-logger.level = 0
-
-
-def adapt_timestamp_iso_string(timestamp: datetime.datetime):
-    return timestamp.isoformat()
-
 
 class Collector:
     def __init__(self, bmc_hostname, bmc_username, bmc_password, bmc_type, agent_url, db_file, ipmitool_path=None):
@@ -22,8 +17,8 @@ class Collector:
         self.agent_url = agent_url if agent_url.startswith('http') else f'http://{agent_url}'
         self.agent_url.rstrip('/')
         self.db_file = db_file
-        sqlite3.register_adapter(datetime.date, adapt_timestamp_iso_string)
-        sqlite3.register_adapter(datetime.datetime, adapt_timestamp_iso_string)
+        sqlite3.register_adapter(datetime.date, lambda timestamp: timestamp.isoformat('seconds'))
+        sqlite3.register_adapter(datetime.datetime, lambda timestamp: timestamp.isoformat('seconds'))
         self.create_db_tables()
 
         self.http_session = None
