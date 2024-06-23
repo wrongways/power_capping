@@ -11,6 +11,7 @@ from BMC import BMC_Type, IpmiBMC, RedfishBMC
 logging.basicConfig(level='DEBUG')
 logger = logging.getLogger(__name__)
 
+
 class Collector:
     def __init__(self, bmc_hostname, bmc_username, bmc_password, bmc_type, agent_url, db_file, ipmitool_path=None):
         self.bmc_hostname = bmc_hostname
