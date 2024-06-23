@@ -10,6 +10,7 @@ import logging
 import sqlite3
 import threading
 from datetime import date, datetime, UTC
+from enum import Enum
 
 import aiohttp
 
@@ -19,6 +20,12 @@ from collector import Collector
 from runner import config
 
 HTTP_202_ACCEPTED = 202
+
+
+class UpDown(Enum):
+    up = 1
+    down = 2
+
 
 logging.basicConfig(level='DEBUG')
 logger = logging.getLogger(__name__)
@@ -167,6 +174,42 @@ class Runner:
         self.log_test_run(start_time, end_time, cap_from, cap_to, n_steps, load_pct, n_threads,
                           pause_load_between_cap_settings)
 
+    async def run_campaign(self,
+                           min_load, max_load, load_delta,
+                           min_threads, max_threads, threads_delta,
+                           cap_min, cap_max, cap_delta, up_down
+                           ):
+        """Generate the combinations of test configurations and calls run_test for each"""
+
+        assert min_load <= max_load
+        assert min_threads <= max_threads
+        assert cap_min < cap_max and cap_delta > 0
+        assert load_delta > 0 or min_load == max_load
+        assert threads_delta > 0 or min_threads == max_threads
+        assert load_delta <= (max_load - min_load)
+        assert threads_delta <= (max_threads - min_threads)
+
+        n_steps = (cap_max - cap_min) // cap_delta
+        if load_delta > 0:
+            for load in range(min_load, max_load, load_delta):
+                for pause in (True, False):
+                    if up_down & UpDown.up > 0:
+                        await self.run_test(cap_min, cap_max, n_steps, load_pct=load, n_threads=0,
+                                            pause_load_between_cap_settings=pause)
+                    if up_down & UpDown.down > 0:
+                        await self.run_test(cap_max, cap_min, n_steps, load_pct=load, n_threads=0,
+                                            pause_load_between_cap_settings=pause)
+
+        if threads_delta > 0:
+            for n_threads in range(min_threads, max_threads, threads_delta):
+                for pause in (True, False):
+                    if up_down & UpDown.up > 0:
+                        await self.run_test(cap_min, cap_max, n_steps, load_pct=100, n_threads=n_threads,
+                                            pause_load_between_cap_settings=pause)
+                    if up_down & UpDown.down > 0:
+                        await self.run_test(cap_max, cap_min, n_steps, load_pct=100, n_threads=n_threads,
+                                            pause_load_between_cap_settings=pause)
+
     def create_db_tables(self):
         """Creates the capping and test tables in the db."""
 
@@ -246,12 +289,18 @@ if __name__ == "__main__":
         collect_thread.start()
         logger.debug("Started collect thread")
         logger.debug("Starting runner.run_test()")
-        await runner.run_test(cap_from=400, cap_to=800, n_steps=2, load_pct=100, n_threads=0,
-                              pause_load_between_cap_settings=False)
+        # await runner.run_test(cap_from=400, cap_to=800, n_steps=2, load_pct=100, n_threads=0,
+        #                       pause_load_between_cap_settings=False)
+
+        await runner.run_campaign(90, 100, 5,
+                                  min_threads=220, max_threads=224, threads_delta=12,
+                                  cap_min=500, cap_max=800, cap_delta=150, up_down=UpDown.down)
+
         logger.debug("Run test ended, halting collector")
         collector.end_collect()
         logger.debug("Joining collect thread")
         collect_thread.join()
         logger.debug("Collector ended")
+
 
     asyncio.run(main())
