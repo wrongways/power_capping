@@ -14,7 +14,7 @@ import aiohttp
 
 from BMC import BMC_Type, IpmiBMC, RedfishBMC
 from collector import Collector
-from runner.config import TestConfig
+from ..config import TestConfig
 
 HTTP_202_ACCEPTED = 202
 
