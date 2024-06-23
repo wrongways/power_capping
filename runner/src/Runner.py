@@ -55,10 +55,17 @@ class Runner:
         """
 
         sample_duration_secs = 20
-        min_power = min([await self.bmc.current_power for _ in range(sample_duration_secs)])
+
+        # Determine min power - assumes system idle
+        min_power = 999_999_999
+        for _ in range(sample_duration_secs + 1):
+            await asyncio.sleep(1)
+            min_power = min(min_power, await self.bmc.current_power)
+
+        # Launch firestarter and measure max power of sample duration
         await self.launch_firestarter(load_pct=100, n_threads=0, runtime_secs=sample_duration_secs)
         max_power = 0
-        for _ in range(sample_duration_secs):
+        for _ in range(sample_duration_secs + 1):
             await asyncio.sleep(1)
             max_power = max(max_power, await self.bmc.current_power)
 
@@ -77,7 +84,7 @@ class Runner:
         async with aiohttp.ClientSession() as session:
             async with session.post(firestarter_endpoint, json=firestarter_args, ssl=False) as resp:
                 if resp.status != HTTP_202_ACCEPTED:
-                    print(f"Failed to launch firestarter: {resp.status}")
+                    print(f"Failed to launch firestarter: {resp.status} - {await resp.json()}")
 
     async def run_test(self, cap_from, cap_to, n_steps=1, load_pct=100, n_threads=0,
                        pause_load_between_cap_settings=False
