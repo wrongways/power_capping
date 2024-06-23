@@ -10,11 +10,12 @@ import sys
 from datetime import datetime, UTC
 from math import ceil
 
+import
 import aiohttp
 
 from BMC import BMC_Type, IpmiBMC, RedfishBMC
 from collector import Collector
-from ..config import TestConfig
+from runner import config
 
 HTTP_202_ACCEPTED = 202
 
@@ -109,9 +110,9 @@ class Runner:
                        ):
         """Run a given test configuration"""
 
-        warmup_seconds = TestConfig.warmup_seconds
-        per_step_runtime_seconds = TestConfig.per_step_runtime_seconds
-        inter_step_pause_seconds = TestConfig.inter_step_pause_seconds
+        warmup_seconds = config.TestConfig.warmup_seconds
+        per_step_runtime_seconds = config.TestConfig.per_step_runtime_seconds
+        inter_step_pause_seconds = config.TestConfig.inter_step_pause_seconds
 
         assert n_steps > 0
 
