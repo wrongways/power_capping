@@ -10,7 +10,7 @@ import logging
 import sqlite3
 import threading
 from datetime import date, datetime, UTC
-from enum import Enum
+from enum import Flag
 
 import aiohttp
 
@@ -22,7 +22,7 @@ from runner import config
 HTTP_202_ACCEPTED = 202
 
 
-class UpDown(Enum):
+class UpDown(Flag):
     up = 1
     down = 2
 
@@ -86,29 +86,6 @@ class Runner:
                         db.execute(sql, tuple(system_info.values()))
                 else:
                     print(f"Failed to get system information. Status code: {resp.status}\n{resp}")
-
-    async def get_min_max_power(self):
-        """Establishes the min/max power consumption of the system under test.
-
-            Assumes that the system under test is at (close to) idle
-        """
-
-        sample_duration_secs = 20
-
-        # Determine min power - assumes system idle
-        min_power = 999_999_999
-        for _ in range(sample_duration_secs):
-            await asyncio.sleep(1)
-            min_power = min(min_power, await self.bmc.current_power)
-
-        # Launch firestarter and measure max power of sample duration
-        await self.launch_firestarter(load_pct=100, n_threads=0, runtime_secs=sample_duration_secs)
-        max_power = 0
-        for _ in range(sample_duration_secs + 1):
-            await asyncio.sleep(1)
-            max_power = max(max_power, await self.bmc.current_power)
-
-        return min_power, max_power
 
     async def launch_firestarter(self, load_pct, n_threads, runtime_secs):
         """Request that the agent run firestarter with the provided parameters."""
@@ -193,20 +170,20 @@ class Runner:
         if load_delta > 0:
             for load in range(min_load, max_load + 1, load_delta):
                 for pause in (True, False):
-                    if up_down.value & UpDown.up.value > 0:
+                    if up_down & UpDown.up:
                         await self.run_test(cap_min, cap_max, n_steps, load_pct=load, n_threads=0,
                                             pause_load_between_cap_settings=pause)
-                    if up_down.value & UpDown.down.value > 0:
+                    if up_down & UpDown.down:
                         await self.run_test(cap_max, cap_min, n_steps, load_pct=load, n_threads=0,
                                             pause_load_between_cap_settings=pause)
 
         if threads_delta > 0:
             for n_threads in range(min_threads, max_threads + 1, threads_delta):
                 for pause in (True, False):
-                    if up_down.value & UpDown.up.value > 0:
+                    if up_down & UpDown.up:
                         await self.run_test(cap_min, cap_max, n_steps, load_pct=100, n_threads=n_threads,
                                             pause_load_between_cap_settings=pause)
-                    if up_down.value & UpDown.down.value > 0:
+                    if up_down & UpDown.down:
                         await self.run_test(cap_max, cap_min, n_steps, load_pct=100, n_threads=n_threads,
                                             pause_load_between_cap_settings=pause)
 
@@ -261,7 +238,8 @@ class Runner:
         """Insert details of single test run into the tests table."""
 
         sql = '''\
-        insert into tests(start_time, end_time, cap_from, cap_to, n_steps, load_pct, n_threads, pause_load_between_cap_settings)
+        insert into tests(start_time, end_time, cap_from, cap_to, n_steps, load_pct, n_threads, 
+        pause_load_between_cap_settings)
         values(?, ?, ?, ?, ?, ?, ?, ?);'''
         data = (start_time, end_time, cap_from, cap_to, n_steps, load_pct, n_threads, pause_load_between_cap_settings)
         with sqlite3.connect(self.db_path, check_same_thread=False) as db:
@@ -288,8 +266,6 @@ if __name__ == "__main__":
         collect_thread.start()
         logger.debug("Started collect thread")
         logger.debug("Starting runner.run_test()")
-        # await runner.run_test(cap_from=400, cap_to=800, n_steps=2, load_pct=100, n_threads=0,
-        #                       pause_load_between_cap_settings=False)
 
         await runner.run_campaign(90, 100, 5,
                                   min_threads=200, max_threads=224, threads_delta=12,
