@@ -265,6 +265,6 @@ if __name__ == "__main__":
         print("Collector started, running test")
         await runner.run_test(cap_from=400, cap_to=800, n_steps=2, load_pct=100, n_threads=0,
                               pause_load_between_cap_settings=False)
-        await runner.collector.end_collect()
+        runner.collector.end_collect()
 
     asyncio.run(main())

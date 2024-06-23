@@ -74,9 +74,13 @@ class Collector:
                 bmc_sample = await self.sample_bmc()
                 agent_sample = await self.sample_agent()
                 self.save_sample(db, timestamp, bmc_sample, agent_sample)
+                logger.debug(f"StartCollect loop: {self.do_collect=}")
 
-    async def end_collect(self):
+    def end_collect(self):
+        logger.debug("Stopping Collection")
         self.do_collect = False
+        logger.debug(f"{self.do_collect=}")
+
 
     async def sample_agent(self):
         endpoint = self.agent_url + '/rapl_power'
