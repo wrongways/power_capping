@@ -225,14 +225,18 @@ class Runner:
             db.execute(system_info_table_sql)
 
     async def start_collection(self):
+        logger.debug("Launching collector")
         async with asyncio.TaskGroup() as tg:
             self.collection_task = tg.create_task(self.collector.start_collect(freq=1), name='collector')
-            print("Collection task running")
+            logger.info("Collection task running")
+        logger.debug("Collector finished")
 
     @staticmethod
     def log_test_run(db, start_time, end_time, cap_from, cap_to, n_steps, load_pct, n_threads,
                      pause_load_between_cap_settings
                      ):
+        """Insert details of single test run into the tests table."""
+
         sql = '''\
         insert into tests(start_time, end_time, cap_from, cap_to, n_steps, load_pct, n_threads, pause_load_between_cap_settings)
         values(?, ?, ?, ?, ?, ?, ?, ?);'''
@@ -241,6 +245,7 @@ class Runner:
 
     @staticmethod
     def log_cap_level(db, cap_level):
+        """Insert a timestamped change into the capping_commands table."""
         sql = 'insert into capping_commands(timestamp, cap_level) values(?, ?);'
         data = (datetime.now(UTC), cap_level)
         db.execute(sql, data)
