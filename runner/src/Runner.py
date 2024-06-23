@@ -45,6 +45,8 @@ class Runner:
             self.bmc = RedfishBMC(bmc_hostname, bmc_username, bmc_password)
             self.collector = Collector(bmc_hostname, bmc_username, bmc_password, bmc_type, agent_url, db_path)
 
+        self.collection_task = None
+
     @property
     def bmc_type(self):
         """Return the type of BMC as string."""
@@ -222,6 +224,11 @@ class Runner:
             db.execute(test_table_sql)
             db.execute(system_info_table_sql)
 
+    async def start_collection(self):
+        async with asyncio.TaskGroup() as tg:
+            self.collection_task = tg.create_task(self.collector.start_collect(freq=1), name='collector')
+            print("Collection task running")
+
     @staticmethod
     def log_test_run(db, start_time, end_time, cap_from, cap_to, n_steps, load_pct, n_threads,
                      pause_load_between_cap_settings
@@ -248,7 +255,11 @@ if __name__ == "__main__":
             await runner.collector.bmc.connect()
 
         await runner.collect_system_information()
+        print("Starting collection")
+        await runner.start_collection()
+        print("Collector started, running test")
         await runner.run_test(cap_from=400, cap_to=800, n_steps=2, load_pct=100, n_threads=0,
                               pause_load_between_cap_settings=False)
+        await runner.collector.end_collect()
 
     asyncio.run(main())
