@@ -193,20 +193,20 @@ class Runner:
         if load_delta > 0:
             for load in range(min_load, max_load + 1, load_delta):
                 for pause in (True, False):
-                    if up_down & UpDown.up.value > 0:
+                    if up_down.value & UpDown.up.value > 0:
                         await self.run_test(cap_min, cap_max, n_steps, load_pct=load, n_threads=0,
                                             pause_load_between_cap_settings=pause)
-                    if up_down & UpDown.down.value > 0:
+                    if up_down.value & UpDown.down.value > 0:
                         await self.run_test(cap_max, cap_min, n_steps, load_pct=load, n_threads=0,
                                             pause_load_between_cap_settings=pause)
 
         if threads_delta > 0:
             for n_threads in range(min_threads, max_threads + 1, threads_delta):
                 for pause in (True, False):
-                    if up_down & UpDown.up > 0:
+                    if up_down.value & UpDown.up.value > 0:
                         await self.run_test(cap_min, cap_max, n_steps, load_pct=100, n_threads=n_threads,
                                             pause_load_between_cap_settings=pause)
-                    if up_down & UpDown.down > 0:
+                    if up_down.value & UpDown.down.value > 0:
                         await self.run_test(cap_max, cap_min, n_steps, load_pct=100, n_threads=n_threads,
                                             pause_load_between_cap_settings=pause)
 
