@@ -71,9 +71,7 @@ def cpu_info():
     integer_keys = ('cpus', 'threads_per_core', 'cores_per_socket', 'sockets', 'cpu_mhz', 'cpu_min_mhz', 'cpu_max_mhz')
     for k in integer_keys:
         cpu_data[k] = to_int(cpu_data[k])
-        print(f"{cpu_data[k]} => {to_int(cpu_data[k])}")
 
-    print(cpu_data)
     return cpu_data
 
 

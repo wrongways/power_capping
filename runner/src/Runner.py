@@ -8,8 +8,8 @@ import asyncio
 import json
 import logging
 import sqlite3
+import threading
 from datetime import date, datetime, UTC
-from math import ceil
 
 import aiohttp
 
@@ -39,31 +39,23 @@ class Runner:
         bmc_type = BMC_Type.IPMI if bmc_type == 'ipmi' else BMC_Type.REDFISH
         if bmc_type == BMC_Type.IPMI:
             self.bmc = IpmiBMC(bmc_hostname, bmc_username, bmc_password, ipmitool_path)
-            self.collector = Collector(bmc_hostname, bmc_username, bmc_password, bmc_type, agent_url, db_path,
-                                       ipmitool_path)
         else:
             self.bmc = RedfishBMC(bmc_hostname, bmc_username, bmc_password)
-            self.collector = Collector(bmc_hostname, bmc_username, bmc_password, bmc_type, agent_url, db_path)
-
-        self.collection_task = None
 
     @property
     def bmc_type(self):
         """Return the type of BMC as string."""
         return 'impi' if isinstance(self.bmc, IpmiBMC) else 'redfish'
 
-    async def calibrate(self):
-        """Establish min/max power draws and capping levels"""
-        min_power, max_power = await self.get_min_max_power()
-        max_power = ceil(int(max_power * 1.2) // 10) * 10  # Give a bit of headroom and round to 10
-        return min_power, max_power
+    async def bmc_connect(self):
+        """Create http session if bmc_type=redfish."""
+        if isinstance(self.bmc, RedfishBMC):
+            await self.bmc.connect()
 
     async def collect_system_information(self):
         """Save system information from agent on SUT, complete with BMC and power info into db"""
 
-        print("Enter collect_system_information()")
-        min_power, max_power = await self.calibrate()
-
+        logger.debug("Enter collect_system_information()")
         async with aiohttp.ClientSession() as session:
             endpoint = self.agent_url + '/system_info'
             async with session.get(endpoint) as resp:
@@ -72,8 +64,6 @@ class Runner:
 
                     # Add complementary info
                     system_info['bmc_type'] = self.bmc_type
-                    system_info['min_power'] = min_power
-                    system_info['max_power'] = max_power
 
                     # Prepare sql
                     columns = ",".join(system_info)
@@ -224,12 +214,6 @@ class Runner:
             db.execute(test_table_sql)
             db.execute(system_info_table_sql)
 
-    async def start_collection(self):
-        logger.debug("Launching collector")
-        async with asyncio.TaskGroup() as tg:
-            self.collection_task = tg.create_task(self.collector.start_collect(freq=1), name='collector')
-            logger.info("Collection task running")
-        logger.debug("Collector finished")
 
     @staticmethod
     def log_test_run(db, start_time, end_time, cap_from, cap_to, n_steps, load_pct, n_threads,
@@ -255,16 +239,22 @@ if __name__ == "__main__":
     async def main():
         args = vars(parse_args())
         runner = Runner(**args)
-        if args.get('bmc_type') == 'redfish':
-            await runner.bmc.connect()
-            await runner.collector.bmc.connect()
+        collector = Collector(**args)
+        await runner.bmc.connect()
+        await collector.bmc_connect()
 
         await runner.collect_system_information()
-        print("Starting collection")
-        await runner.start_collection()
-        print("Collector started, running test")
+        logger.debug("Launching collector")
+        collect_thread = threading.Thread(target=asyncio.run, args=(collector.start_collect(),))
+        collect_thread.start()
+        logger.debug("Started collect thread")
+        logger.debug("Starting runner.run_test()")
         await runner.run_test(cap_from=400, cap_to=800, n_steps=2, load_pct=100, n_threads=0,
                               pause_load_between_cap_settings=False)
-        runner.collector.end_collect()
+        logger.debug("Run test ended, halting collector")
+        collector.end_collect()
+        logger.debug("Joining collect thread")
+        collect_thread.join()
+        logger.debug("Collector ended")
 
     asyncio.run(main())
