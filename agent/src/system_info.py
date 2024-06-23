@@ -56,6 +56,7 @@ def cpu_info():
     ]
 
     def to_int(s):
+        """Convert string int to int or zero"""
         try:
             i = int(s)
         except ValueError:
@@ -70,6 +71,10 @@ def cpu_info():
     integer_keys = ('cpus', 'threads_per_core', 'cores_per_socket', 'sockets', 'cpu_mhz', 'cpu_min_mhz', 'cpu_max_mhz')
     for k in integer_keys:
         cpu_data[k] = to_int(cpu_data[k])
+        print(f"{cpu_data[k]} => {to_int(cpu_data[k])}")
+
+    print(cpu_data)
+    return cpu_data
 
 
 def hw_info():
@@ -87,6 +92,7 @@ def hw_info():
     # List of dmi paths
     dmi_paths = [dmi_root.joinpath(f) for f in dmi_files]
 
+    print({p.name: p.read_text().strip() for p in dmi_paths if p.exists()})
     # For each dmi path that exists, create dictionary
     # with name as key and stripped contents as value
     return {p.name: p.read_text().strip() for p in dmi_paths if p.exists()}
