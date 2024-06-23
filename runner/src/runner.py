@@ -10,7 +10,6 @@ import sys
 from datetime import datetime, UTC
 from math import ceil
 
-import
 import aiohttp
 
 from BMC import BMC_Type, IpmiBMC, RedfishBMC
