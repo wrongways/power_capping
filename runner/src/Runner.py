@@ -137,35 +137,35 @@ class Runner:
 
         cap_delta = (cap_from - cap_to) // n_steps
 
-        with sqlite3.connect(self.db_path, check_same_thread=False) as db:
-            # Initial conditions - set cap from value
-            self.log_cap_level(db, cap_from)
-            await self.bmc.set_cap_level(cap_from)
-            await asyncio.sleep(inter_step_pause_seconds)
+        # Initial conditions - set cap from value
+        self.log_cap_level(cap_from)
 
-            cap_level = cap_from
-            start_time = datetime.now(UTC)
-            if pause_load_between_cap_settings:
-                for _ in range(n_steps):
-                    await self.launch_firestarter(load_pct, n_threads, firestarter_runtime)
-                    await asyncio.sleep(warmup_seconds)
-                    cap_level -= cap_delta
-                    self.log_cap_level(db, cap_level)
-                    await self.bmc.set_cap_level(cap_level)
-                    await asyncio.sleep(per_step_runtime_seconds + inter_step_pause_seconds)
+        await self.bmc.set_cap_level(cap_from)
+        await asyncio.sleep(inter_step_pause_seconds)
 
-            else:
+        cap_level = cap_from
+        start_time = datetime.now(UTC)
+        if pause_load_between_cap_settings:
+            for _ in range(n_steps):
                 await self.launch_firestarter(load_pct, n_threads, firestarter_runtime)
                 await asyncio.sleep(warmup_seconds)
-                for _ in range(n_steps):
-                    cap_level -= cap_delta
-                    self.log_cap_level(db, cap_level)
-                    await self.bmc.set_cap_level(cap_level)
-                    await asyncio.sleep(per_step_runtime_seconds)
+                cap_level -= cap_delta
+                self.log_cap_level(cap_level)
+                await self.bmc.set_cap_level(cap_level)
+                await asyncio.sleep(per_step_runtime_seconds + inter_step_pause_seconds)
 
-            end_time = datetime.now(UTC)
-            self.log_test_run(db, start_time, end_time, cap_from, cap_to, n_steps, load_pct, n_threads,
-                              pause_load_between_cap_settings)
+        else:
+            await self.launch_firestarter(load_pct, n_threads, firestarter_runtime)
+            await asyncio.sleep(warmup_seconds)
+            for _ in range(n_steps):
+                cap_level -= cap_delta
+                self.log_cap_level(cap_level)
+                await self.bmc.set_cap_level(cap_level)
+                await asyncio.sleep(per_step_runtime_seconds)
+
+        end_time = datetime.now(UTC)
+        self.log_test_run(start_time, end_time, cap_from, cap_to, n_steps, load_pct, n_threads,
+                          pause_load_between_cap_settings)
 
     def create_db_tables(self):
         """Creates the capping and test tables in the db."""
@@ -212,9 +212,7 @@ class Runner:
             db.execute(test_table_sql)
             db.execute(system_info_table_sql)
 
-
-    @staticmethod
-    def log_test_run(db, start_time, end_time, cap_from, cap_to, n_steps, load_pct, n_threads,
+    def log_test_run(self, start_time, end_time, cap_from, cap_to, n_steps, load_pct, n_threads,
                      pause_load_between_cap_settings
                      ):
         """Insert details of single test run into the tests table."""
@@ -223,14 +221,15 @@ class Runner:
         insert into tests(start_time, end_time, cap_from, cap_to, n_steps, load_pct, n_threads, pause_load_between_cap_settings)
         values(?, ?, ?, ?, ?, ?, ?, ?);'''
         data = (start_time, end_time, cap_from, cap_to, n_steps, load_pct, n_threads, pause_load_between_cap_settings)
-        db.execute(sql, data)
+        with sqlite3.connect(self.db_path, check_same_thread=False) as db:
+            db.execute(sql, data)
 
-    @staticmethod
-    def log_cap_level(db, cap_level):
+    def log_cap_level(self, cap_level):
         """Insert a timestamped change into the capping_commands table."""
         sql = 'insert into capping_commands(timestamp, cap_level) values(?, ?);'
         data = (datetime.now(UTC), cap_level)
-        db.execute(sql, data)
+        with sqlite3.connect(self.db_path, check_same_thread=False) as db:
+            db.execute(sql, data)
 
 
 if __name__ == "__main__":

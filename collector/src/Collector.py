@@ -64,23 +64,22 @@ class Collector:
 
         sample_interval = timedelta(seconds=1 / freq)
         next_collect_timestamp = dt.now(UTC)
-        with sqlite3.connect(self.db_path, check_same_thread=False) as db:
-            while self.do_collect:
-                timestamp = dt.now(UTC)
-                if (sleep_time := (next_collect_timestamp - timestamp).total_seconds()) > 0:
-                    await asyncio.sleep(sleep_time)
-                next_collect_timestamp = timestamp + sample_interval
 
-                bmc_sample = await self.sample_bmc()
-                agent_sample = await self.sample_agent()
-                self.save_sample(db, timestamp, bmc_sample, agent_sample)
-                logger.debug(f"StartCollect loop: {self.do_collect=}")
+        while self.do_collect:
+            timestamp = dt.now(UTC)
+            if (sleep_time := (next_collect_timestamp - timestamp).total_seconds()) > 0:
+                await asyncio.sleep(sleep_time)
+            next_collect_timestamp = timestamp + sample_interval
+
+            bmc_sample = await self.sample_bmc()
+            agent_sample = await self.sample_agent()
+            self.save_sample(timestamp, bmc_sample, agent_sample)
+            logger.debug(bmc_sample, "\n", agent_sample)
 
     def end_collect(self):
         logger.debug("Stopping Collection")
         self.do_collect = False
         logger.debug(f"{self.do_collect=}")
-
 
     async def sample_agent(self):
         endpoint = self.agent_url + '/rapl_power'
@@ -103,11 +102,10 @@ class Collector:
             'bmc_cap_level': bmc_cap_level
         }
 
-    def save_sample(self, db, timestamp, bmc_sample, agent_sample):
-        db.execute('begin')
-        self.save_bmc_sample(db, timestamp, bmc_sample)
-        self.save_agent_sample(db, timestamp, agent_sample)
-        db.execute('commit')
+    def save_sample(self, timestamp, bmc_sample, agent_sample):
+        with sqlite3.connect(self.db_path, check_same_thread=False) as db:
+            self.save_bmc_sample(db, timestamp, bmc_sample)
+            self.save_agent_sample(db, timestamp, agent_sample)
 
     @staticmethod
     def save_bmc_sample(db, timestamp, bmc_sample):
