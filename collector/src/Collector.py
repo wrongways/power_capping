@@ -13,11 +13,11 @@ logger = logging.getLogger(__name__)
 
 
 class Collector:
-    def __init__(self, bmc_hostname, bmc_username, bmc_password, bmc_type, agent_url, db_file, ipmitool_path=None):
+    def __init__(self, bmc_hostname, bmc_username, bmc_password, bmc_type, agent_url, db_path, ipmitool_path=None):
         self.bmc_hostname = bmc_hostname
         self.agent_url = agent_url if agent_url.startswith('http') else f'http://{agent_url}'
         self.agent_url.rstrip('/')
-        self.db_file = db_file
+        self.db_path = db_path
         sqlite3.register_adapter(datetime.date, lambda timestamp: timestamp.isoformat(timespec='milliseconds'))
         sqlite3.register_adapter(datetime.datetime, lambda timestamp: timestamp.isoformat(timespec='milliseconds'))
         self.create_db_tables()
@@ -56,7 +56,7 @@ class Collector:
             );
             '''
 
-        with sqlite3.connect(self.db_file) as db:
+        with sqlite3.connect(self.db_path) as db:
             db.execute(create_bmc_table_sql)
             db.execute(create_rapl_table_sql)
 
@@ -64,7 +64,7 @@ class Collector:
 
         sample_interval = timedelta(seconds=1 / freq)
         next_collect_timestamp = dt.now(UTC)
-        with sqlite3.connect(self.db_file) as db:
+        with sqlite3.connect(self.db_path) as db:
             while self.do_collect:
                 timestamp = dt.now(UTC)
                 if (sleep_time := (next_collect_timestamp - timestamp).total_seconds()) > 0:
