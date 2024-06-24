@@ -270,8 +270,9 @@ if __name__ == "__main__":
             args['db_path'] = db_path
 
         logger.info(f"Results database file: {args.get('db_path')}")
-        runner_keys = 'bmc_hostname, bmc_username, bmc_password, bmc_type, agent_url, db_path, ipmitool_path'.split()
+        runner_keys = 'bmc_hostname bmc_username bmc_password bmc_type agent_url db_path ipmitool_path'.split()
         runner_args = {k: args.get(k) for k in runner_keys}
+        print(runner_args)
         runner = Runner(**runner_args)
         collector = Collector(**runner_args)
         await runner.bmc_connect()
