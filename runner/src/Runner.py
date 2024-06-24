@@ -269,7 +269,7 @@ if __name__ == "__main__":
             agent = args.get('agent_url').lstrip('http://').rstrip('/')
             agent = re.sub(r':\d+', '', agent)
             logger.debug(f'Agent: {agent}')
-            timestamp = datetime.now().strftime('%y%m%d_%H:%M__%a')
+            timestamp = datetime.now().strftime('%a_%d_%b_%H:%M')
             db_path = f'{agent}_{timestamp}_capping_test.db'
             args['db_path'] = db_path
 
