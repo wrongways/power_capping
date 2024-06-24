@@ -260,6 +260,14 @@ class Runner:
 if __name__ == "__main__":
     async def main():
         args = vars(parse_args())
+        if args.get('db_path') is None:
+            agent = args.get('agent_url').lstrip('http://').rstrip('/')
+            logger.debug(f'Agent: {agent}')
+            timestamp = datetime.now().strftime('%y%m%d_%a_%H:%M')
+            db_path = f'{agent}{timestamp}.db'
+            args['db_path'] = db_path
+
+        logger.info(f"Results database file: {args.get('db_path')}")
         runner = Runner(**args)
         collector = Collector(**args)
         await runner.bmc_connect()
