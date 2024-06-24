@@ -42,7 +42,7 @@ class Collector:
     def create_db_tables(self):
         create_bmc_table_sql = '''\
         create table if not exists bmc(
-            timestamp text primary key, -- ISO8601 strings ("YYYY-MM-DD HH:MM:SS")
+            timestamp datetime primary key, -- ISO8601 strings ("YYYY-MM-DD HH:MM:SS")
             power integer not null check (power > 0), 
             cap_level integer
         );
@@ -50,9 +50,9 @@ class Collector:
 
         create_rapl_table_sql = '''\
             create table if not exists rapl(
-                timestamp text not null, -- ISO8601 strings ("YYYY-MM-DD HH:MM:SS")
+                timestamp datetime not null, -- ISO8601 strings ("YYYY-MM-DD HH:MM:SS")
                 package text not null,
-                power integer not null check (power > 0),
+                power float not null check (power > 0),
                 primary key (timestamp, package)
             );
             '''
