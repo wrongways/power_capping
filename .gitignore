@@ -7,4 +7,4 @@ __pycache__/
 pyvenv.cfg
 .venv/
 .DS_Store/
-./analyzer/data/
+analyzer/data/
