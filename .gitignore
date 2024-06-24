@@ -8,3 +8,5 @@ pyvenv.cfg
 .venv/
 .DS_Store/
 analyzer/data/
+share/
+etc/
