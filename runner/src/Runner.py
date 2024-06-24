@@ -7,6 +7,7 @@ to establish min and max power consumption (without loading any GPUs) and the mi
 import asyncio
 import json
 import logging
+import re
 import sqlite3
 import threading
 from datetime import date, datetime, UTC
@@ -266,8 +267,9 @@ if __name__ == "__main__":
         args = vars(parse_args())
         if args.get('db_path') is None:
             agent = args.get('agent_url').lstrip('http://').rstrip('/')
+            agent = re.sub(r':\d+', '', agent)
             logger.debug(f'Agent: {agent}')
-            timestamp = datetime.now().strftime('%y%m%d_%a_%H:%M')
+            timestamp = datetime.now().strftime('%y%m%d_%H:%M')
             db_path = f'{agent}{timestamp}_capping_test.db'
             args['db_path'] = db_path
 
