@@ -11,7 +11,6 @@ from BMC.src.bmc import BMC
 REDFISH_ROOT = '/redfish/v1'
 KNOWN_MOTHERBOARDS = {'motherboard', 'self', '1'}
 
-logging.basicConfig(level='DEBUG')
 logger = logging.getLogger(__name__)
 
 
@@ -72,11 +71,10 @@ class RedfishBMC(BMC):
         async with aiohttp.ClientSession() as session:
             async with session.get(chassis_endpoint, headers=headers, ssl=False) as r:
                 if not r.ok:
-                    logger.error(
-                        f'Failed to establish redfish session, authentication failed, Bailing. {r.headers}, {json.dumps(json_body, sort_keys=True, indent=2)}')
-                    raise RuntimeError(
-                            f'Failed to establish redfish session: {r.headers} {json_body}'
-                    )
+                    body = await r.text()
+                    msg = f'Failed to get chassis, Bailing. {r.headers}, {body}'
+                    logger.error(msg)
+                    raise RuntimeError(msg)
 
                 # print(json.dumps(json_body, sort_keys=True, indent=2))
                 # Chassis are held under the '@odata.id' key in the 'Members' array
@@ -107,14 +105,15 @@ class RedfishBMC(BMC):
         motherboard = await self.motherboard
         power_endpoint = f'{self.redfish_root}/Chassis/{motherboard}/Power'
         headers = {'X-Auth-Token': self.token}
-        print(f'Connecting to {power_endpoint}')
+        logger.debug(f'Connecting to {power_endpoint}')
         async with aiohttp.ClientSession() as session:
             async with session.get(power_endpoint, headers=headers, ssl=False) as r:
-                json_body = await r.json()
                 if not r.ok:
-                    raise RuntimeError(
-                            f'Failed to establish redfish session: {r.headers} {json_body}'
-                    )
+                    body = await r.text()
+                    msg = f'Failed to get current_power: {r.headers} {body}'
+                    logger.error(msg)
+                    raise RuntimeError(msg)
+                json_body = await r.json()
                 power = json_body.get('PowerControl', [{}])[0].get('PowerConsumedWatts')
                 return int(power)
 
@@ -123,21 +122,19 @@ class RedfishBMC(BMC):
         print(f'Getting cap level')
         motherboard = await self.motherboard
         power_endpoint = f'{self.redfish_root}/Chassis/{motherboard}/Power'
-        print(f'Connecting to {power_endpoint}')
+        logger.debug(f'Connecting to {power_endpoint}')
         headers = {'X-Auth-Token': self.token}
         async with aiohttp.ClientSession() as session:
             async with session.get(power_endpoint, headers=headers, ssl=False) as r:
 
                 if not r.ok:
-                    lo
-                    raise RuntimeError(
-                            f'''\
-                            Failed to establish redfish session:
+                    msg = f'''Failed to get cap level:
                             Response headers: {r.headers}
                             Response body: {r.text()}
                             '''
-                    )
-                print(f'\tResponse status: {r.status=}')
+                    logger.error(msg)
+                    raise RuntimeError(msg)
+                logger.debug(f'\tResponse status: {r.status=}')
                 json_body = await r.json()
                 return int(json_body.get('PowerControl', [{}])[0].get('PowerLimit', {}).get('LimitInWatts', 0))
 
@@ -159,7 +156,7 @@ class RedfishBMC(BMC):
                 response = await r.text()
                 if not r.ok:
                     raise RuntimeError(
-                            f'Failed to establish redfish session: {r.headers} {response}'
+                            f'Failed to set cap level: {r.headers} {response}'
                     )
                 print(f'\t{r.status=}\n\t{response=}')
 
