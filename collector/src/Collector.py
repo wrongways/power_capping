@@ -3,7 +3,7 @@ import datetime
 import json
 import logging
 import sqlite3
-from datetime import datetime as dt, timedelta, UTC
+from datetime import datetime, timedelta, UTC
 
 import aiohttp
 
@@ -42,7 +42,7 @@ class Collector:
     def create_db_tables(self):
         create_bmc_table_sql = '''\
         create table if not exists bmc(
-            timestamp datetime primary key, -- ISO8601 strings ("YYYY-MM-DD HH:MM:SS")
+            timestamp text primary key, -- ISO8601 strings ("YYYY-MM-DD HH:MM:SS")
             power integer not null check (power > 0), 
             cap_level integer
         );
@@ -50,7 +50,7 @@ class Collector:
 
         create_rapl_table_sql = '''\
             create table if not exists rapl(
-                timestamp datetime not null, -- ISO8601 strings ("YYYY-MM-DD HH:MM:SS")
+                timestamp text not null, -- ISO8601 strings ("YYYY-MM-DD HH:MM:SS")
                 package text not null,
                 power float not null check (power > 0),
                 primary key (timestamp, package)
@@ -64,10 +64,10 @@ class Collector:
     async def start_collect(self, freq=1):
 
         sample_interval = timedelta(seconds=1 / freq)
-        next_collect_timestamp = dt.now(UTC)
+        next_collect_timestamp = datetime.now(UTC)
 
         while self.do_collect:
-            timestamp = dt.now(UTC)
+            timestamp = datetime.now(UTC)
             if (sleep_time := (next_collect_timestamp - timestamp).total_seconds()) > 0:
                 await asyncio.sleep(sleep_time)
             next_collect_timestamp = timestamp + sample_interval
