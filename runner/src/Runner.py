@@ -158,7 +158,7 @@ class Runner:
     async def run_campaign(self,
                            min_load, max_load, load_delta,
                            min_threads, max_threads, threads_delta,
-                           cap_min, cap_max, cap_delta, up_down
+                           cap_min, cap_max, cap_delta, cap_direction
                            ):
         """Generate the combinations of test configurations and calls run_test for each"""
 
@@ -171,23 +171,25 @@ class Runner:
         assert threads_delta <= (max_threads - min_threads)
 
         n_steps = (cap_max - cap_min) // cap_delta
+        # TODO: Handle case where min=max and load_delta=0
+
         if load_delta > 0:
             for load in range(min_load, max_load + 1, load_delta):
                 for pause in (True, False):
-                    if up_down & UpDown.up:
+                    if cap_direction & UpDown.up:
                         await self.run_test(cap_min, cap_max, n_steps, load_pct=load, n_threads=0,
                                             pause_load_between_cap_settings=pause)
-                    if up_down & UpDown.down:
+                    if cap_direction & UpDown.down:
                         await self.run_test(cap_max, cap_min, n_steps, load_pct=load, n_threads=0,
                                             pause_load_between_cap_settings=pause)
 
         if threads_delta > 0:
             for n_threads in range(min_threads, max_threads + 1, threads_delta):
                 for pause in (True, False):
-                    if up_down & UpDown.up:
+                    if cap_direction & UpDown.up:
                         await self.run_test(cap_min, cap_max, n_steps, load_pct=100, n_threads=n_threads,
                                             pause_load_between_cap_settings=pause)
-                    if up_down & UpDown.down:
+                    if cap_direction & UpDown.down:
                         await self.run_test(cap_max, cap_min, n_steps, load_pct=100, n_threads=n_threads,
                                             pause_load_between_cap_settings=pause)
 
@@ -264,12 +266,14 @@ if __name__ == "__main__":
             agent = args.get('agent_url').lstrip('http://').rstrip('/')
             logger.debug(f'Agent: {agent}')
             timestamp = datetime.now().strftime('%y%m%d_%a_%H:%M')
-            db_path = f'{agent}{timestamp}.db'
+            db_path = f'{agent}{timestamp}_capping_test.db'
             args['db_path'] = db_path
 
         logger.info(f"Results database file: {args.get('db_path')}")
-        runner = Runner(**args)
-        collector = Collector(**args)
+        runner_keys = 'bmc_hostname, bmc_username, bmc_password, bmc_type, agent_url, db_path, ipmitool_path'.split()
+        runner_args = {k: args.get(k) for k in runner_keys}
+        runner = Runner(**runner_args)
+        collector = Collector(**runner_args)
         await runner.bmc_connect()
         await collector.bmc_connect()
         await runner.collect_system_information()
@@ -280,11 +284,11 @@ if __name__ == "__main__":
 
         await runner.run_campaign(min_load=90, max_load=100, load_delta=5,
                                   min_threads=192, max_threads=224, threads_delta=8,
-                                  cap_min=400, cap_max=1000, cap_delta=300, up_down=UpDown.down | UpDown.up)
+                                  cap_min=400, cap_max=1000, cap_delta=300, cap_direction=UpDown.down | UpDown.up)
 
         await runner.run_campaign(min_load=90, max_load=100, load_delta=5,
                                   min_threads=192, max_threads=224, threads_delta=8,
-                                  cap_min=400, cap_max=1000, cap_delta=600, up_down=UpDown.down | UpDown.up)
+                                  cap_min=400, cap_max=1000, cap_delta=600, cap_direction=UpDown.down | UpDown.up)
 
         logger.info("Run test ended, halting collector")
         collector.end_collect()
