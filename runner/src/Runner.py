@@ -36,6 +36,7 @@ class Runner:
 
     def __init__(self, bmc_hostname, bmc_username, bmc_password, bmc_type, agent_url, db_path, ipmitool_path=None):
         # Ensure that agent url starts with http
+        self.test_id = None
         self.agent_url = agent_url if agent_url.startswith('http') else f'http://{agent_url}'
         self.db_path = db_path
         self.create_db_tables()
@@ -196,10 +197,11 @@ class Runner:
     def create_db_tables(self):
         """Creates the capping and test tables in the db."""
 
-        capping_table_sql = 'create table if not exists capping_commands(timestamp text, cap_level integer);'
+        capping_table_sql = 'create table if not exists capping_commands(timestamp datetime, cap_level integer);'
         test_table_sql = '''create table if not exists tests(
-            start_time text not null, 
-            end_time text not null, 
+            test_id integer primary key,    -- rowid will auto-increment
+            start_time datetime not null, 
+            end_time datetime not null, 
             cap_from integer not null,
             cap_to integer not null,
             n_steps integer not null,
@@ -246,10 +248,10 @@ class Runner:
         sql = '''\
         insert into tests(start_time, end_time, cap_from, cap_to, n_steps, load_pct, n_threads, 
         pause_load_between_cap_settings)
-        values(?, ?, ?, ?, ?, ?, ?, ?);'''
+        values(?, ?, ?, ?, ?, ?, ?, ?) returning test_id;'''
         data = (start_time, end_time, cap_from, cap_to, n_steps, load_pct, n_threads, pause_load_between_cap_settings)
         with sqlite3.connect(self.db_path, check_same_thread=False) as db:
-            db.execute(sql, data)
+            self.test_id = db.execute(sql, data).fetchone()[0]
 
     def log_cap_level(self, cap_level):
         """Insert a timestamped change into the capping_commands table."""
