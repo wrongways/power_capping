@@ -1,9 +1,8 @@
 import asyncio
-import datetime
 import json
 import logging
 import sqlite3
-from datetime import datetime, timedelta, UTC
+from datetime import date, datetime, timedelta, UTC
 
 import aiohttp
 
@@ -19,8 +18,8 @@ class Collector:
         self.agent_url = agent_url if agent_url.startswith('http') else f'http://{agent_url}'
         self.agent_url.rstrip('/')
         self.db_path = db_path
-        sqlite3.register_adapter(datetime.date, lambda timestamp: timestamp.isoformat(timespec='milliseconds'))
-        sqlite3.register_adapter(datetime.datetime, lambda timestamp: timestamp.isoformat(timespec='milliseconds'))
+        sqlite3.register_adapter(date, lambda timestamp: timestamp.isoformat(timespec='milliseconds'))
+        sqlite3.register_adapter(datetime, lambda timestamp: timestamp.isoformat(timespec='milliseconds'))
         self.create_db_tables()
 
         self.http_session = None
