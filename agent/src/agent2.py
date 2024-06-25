@@ -191,8 +191,9 @@ if __name__ == '__main__':
     cli_args = parse_cli()
     firestarter_path = cli_args.firestarter
     if not Path(firestarter_path).exists():
-        logger.error(f"{firestarter_path}  Not found, bailing")
-        raise ValueError(f"{firestarter_path} Not found")
+        msg = f"{firestarter_path} Not found"
+        logger.error(msg)
+        raise ValueError(msg)
 
     app = web.Application()
     app.add_routes([web.get('/system_info', get_system_info),
