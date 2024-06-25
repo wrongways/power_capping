@@ -269,7 +269,7 @@ if __name__ == "__main__":
             agent = args.get('agent_url').lstrip('http://').rstrip('/')
             agent = re.sub(r':\d+', '', agent)
             logger.debug(f'Agent: {agent}')
-            timestamp = datetime.now().strftime('%a_%d_%b_%H:%M')
+            timestamp = datetime.now().strftime('%a_%d_%b_%Hh%M')
             db_path = f'{agent}_{timestamp}_capping_test.db'
             args['db_path'] = db_path
 
@@ -288,11 +288,12 @@ if __name__ == "__main__":
         logger.info("Starting campaign")
 
         await runner.run_campaign(min_load=90, max_load=100, load_delta=5,
-                                  min_threads=192, max_threads=224, threads_delta=8,
-                                  cap_min=400, cap_max=1000, cap_delta=300, cap_direction=UpDown.down | UpDown.up)
+                                  min_threads=0, max_threads=0, threads_delta=0,
+                                  cap_min=400, cap_max=1000, cap_delta=100, cap_direction=UpDown.down | UpDown.up)
 
         await runner.run_campaign(min_load=90, max_load=100, load_delta=5,
-                                  min_threads=192, max_threads=224, threads_delta=8,
+                                  # min_threads=192, max_threads=224, threads_delta=8,
+                                  min_threads=0, max_threads=0, threads_delta=0,
                                   cap_min=400, cap_max=1000, cap_delta=600, cap_direction=UpDown.down | UpDown.up)
 
         logger.info("Run test ended, halting collector")
