@@ -136,7 +136,10 @@ class RedfishBMC(BMC):
                     raise RuntimeError(msg)
                 logger.debug(f'\tResponse status: {r.status=}')
                 json_body = await r.json()
-                return int(json_body.get('PowerControl', [{}])[0].get('PowerLimit', {}).get('LimitInWatts', 0))
+                if json_body is not None:
+                    return json_body.get('PowerControl', [{}])[0].get('PowerLimit', {}).get('LimitInWatts', 0)
+
+                return 0
 
     async def set_cap_level(self, new_cap_level: int):
         print(f'Setting cap level to {new_cap_level}')
