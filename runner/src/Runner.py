@@ -15,7 +15,7 @@ from enum import Flag
 
 import aiohttp
 
-from BMC import BMC_Type, IpmiBMC, RedfishBMC
+from BMC import IpmiBMC, RedfishBMC
 from cli import parse_args
 from collector import Collector
 from runner import config
@@ -45,11 +45,14 @@ class Runner:
         sqlite3.register_adapter(date, lambda timestamp: timestamp.isoformat(timespec='milliseconds'))
 
         # Establish BMC type
-        bmc_type = BMC_Type.IPMI if bmc_type == 'ipmi' else BMC_Type.REDFISH
-        if bmc_type == BMC_Type.IPMI:
+        if bmc_type == 'ipmi':
+            logger.debug('Creating IPMI BMC')
             self.bmc = IpmiBMC(bmc_hostname, bmc_username, bmc_password, ipmitool_path)
         else:
+            logger.debug('Creating Redfish BMC')
             self.bmc = RedfishBMC(bmc_hostname, bmc_username, bmc_password)
+
+        logger.debug(f'Runner BMC type: {self.bmc_type}')
 
     @property
     def bmc_type(self):
