@@ -298,6 +298,7 @@ if __name__ == "__main__":
                                   cap_min=400, cap_max=1000, cap_delta=600, cap_direction=UpDown.down | UpDown.up)
 
         logger.info("Run test ended, halting collector")
+        await asyncio.sleep(5)
         collector.end_collect()
         collect_thread.join()
         logger.info("Collector ended")
