@@ -42,6 +42,15 @@ class BMC(ABC):
         pass
 
     @abstractmethod
+    async def activate_capping(self):
+        """Optional method to deactivate capping.
+
+        For redfish this should be setting the cap level to none, but
+        this is not always followed.
+        """
+        pass
+
+    @abstractmethod
     async def deactivate_capping(self):
         """Optional method to deactivate capping.
 

@@ -128,28 +128,32 @@ class RedfishBMC(BMC):
             async with session.get(power_endpoint, headers=headers, ssl=False) as r:
 
                 if not r.ok:
-                    msg = f'''Failed to get cap level:
+                    msg = f'''current_cap_level(): Failed to get cap level:
                             Response headers: {r.headers}
                             Response body: {r.text()}
                             '''
                     logger.error(msg)
                     raise RuntimeError(msg)
-                logger.debug(f'\tResponse status: {r.status=}')
+
                 json_body = await r.json()
                 if json_body is not None:
+                    logger.debug(
+                            f'current_cap_level Status: {r.status}\n\t{json.dumps(json_body, indent=3, sort_keys=True)}'
+                    )
                     return json_body.get('PowerControl', [{}])[0].get('PowerLimit', {}).get('LimitInWatts', 0)
 
+                logger.warning(f'current_cap_level received empty body, returning "0". HTTP Status: {r.status}')
                 return 0
 
     async def set_cap_level(self, new_cap_level: int):
-        print(f'Setting cap level to {new_cap_level}')
+        logger.debug(f'Setting cap level to {new_cap_level}')
         motherboard = await self.motherboard
         power_endpoint = f'{self.redfish_root}/Chassis/{motherboard}/Power'
         cap_dict = {
             'PowerControl': [{'PowerLimit': {'LimitInWatts': new_cap_level}}]
         }
-        print(f'Connecting to {power_endpoint}')
-        print(f'Patch data: {json.dumps(cap_dict, sort_keys=True, indent=2)}')
+        logger.debug(f'Connecting to {power_endpoint}')
+        logger.debug(f'Patch data: {json.dumps(cap_dict, sort_keys=True, indent=2)}')
         headers = {
             'X-Auth-Token': self.token,
             'If-Match': '*'
@@ -161,14 +165,56 @@ class RedfishBMC(BMC):
                     raise RuntimeError(
                             f'Failed to set cap level: {r.headers} {response}'
                     )
-                print(f'\t{r.status=}\n\t{response=}')
-
-                # TODO: Send setLimit request, ignore error if no such endpoint
+                logger.debug(f'set_cap_level Status: {r.status}\n\t{response=}')
 
                 return response
 
+    async def do_set_capping(self, operation):
+        """Activates or Deactivates capping on certain systems.
+
+        @param: operation: String either "Activate" or "Deactivate"
+        @return: None
+
+        Some systems require that "LimitTrigger" be set to "Activate" to enable
+        capping. On other systems this Redfish endpoint is not available; because
+        of this, 404 errors are ignored.
+        """
+
+        assert operation in "Activate Deactivate"
+        logger.debug('Activating capping')
+        motherboard = await self.motherboard
+        power_endpoint = f'{self.redfish_root}/Chassis/{motherboard}/Power/Actions/LimitTrigger'
+        cap_dict = {f'PowerLimitTrigger': {operation}}
+        logger.debug(f'Connecting to {power_endpoint}')
+        logger.debug(f'Patch data: {json.dumps(cap_dict, sort_keys=True, indent=2)}')
+        headers = {
+            'X-Auth-Token': self.token,
+            'If-Match': '*'
+        }
+        async with aiohttp.ClientSession() as session:
+            async with session.patch(power_endpoint, headers=headers, json=cap_dict, ssl=False) as r:
+                # This action returns no data if all OK, just wait
+                response = await r.json()
+                if not r.ok:
+
+                    if r.status == 404:
+                        # The endpoint is not implemented on this system
+                        logger.warning("PowerLimitTrigger is not implemented on this system")
+                        return None
+
+                    # Got an error back, but it's not a 404, so raise an Error
+                    raise RuntimeError(
+                            f'Failed to set cap level: {r.headers} {json.dumps(response, indent=3, sort_keys=True)}'
+                    )
+
+        logger.debug(f'Capping {operation}ed')
+        return None
+
+    async def activate_capping(self):
+        await self.do_set_capping('Activate')
+
     async def deactivate_capping(self):
-        pass
+        await self.do_set_capping('Deactivate')
 
 
 if __name__ == '__main__':
