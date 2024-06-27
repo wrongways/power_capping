@@ -6,7 +6,7 @@ from datetime import date, datetime, timedelta, UTC
 
 import aiohttp
 
-from BMC import BMC_Type, IpmiBMC, RedfishBMC
+from BMC import IpmiBMC, RedfishBMC
 
 logging.basicConfig(level='DEBUG')
 logger = logging.getLogger(__name__)
@@ -24,7 +24,7 @@ class Collector:
 
         self.http_session = None
 
-        if bmc_type == BMC_Type.IPMI:
+        if bmc_type == 'ipmi':
             self.bmc = IpmiBMC(bmc_hostname, bmc_username, bmc_password, ipmitool_path)
         else:
             self.bmc = RedfishBMC(bmc_hostname, bmc_username, bmc_password)
