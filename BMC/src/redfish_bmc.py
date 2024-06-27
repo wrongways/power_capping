@@ -195,17 +195,14 @@ class RedfishBMC(BMC):
             async with session.patch(power_endpoint, headers=headers, json=cap_dict, ssl=False) as r:
                 # This action returns no data if all OK, just wait
                 if not r.ok:
-
                     if r.status == 404:
                         # The endpoint is not implemented on this system
                         logger.warning("PowerLimitTrigger is not implemented on this system")
-                        return None
-
-                    # Got an error back, but it's not a 404, so raise an Error
+                    # Got an error back
                     response = await r.text()
-                    raise RuntimeError(f'Failed to set cap level: {r.headers}\n{response}')
-
-        logger.debug(f'Capping {operation}ed')
+                    logger.warning(f'Failed to set cap level: Status: {r.status} - {r.headers}\n{response}')
+                else:
+                    logger.debug(f'Capping {operation}ed')
         return None
 
     async def activate_capping(self):
