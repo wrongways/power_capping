@@ -280,7 +280,7 @@ if __name__ == "__main__":
         runner = Runner(**runner_args)
         collector = Collector(**runner_args)
         await runner.bmc_connect()
-        await runner.activate_capping()
+        await runner.bmc.activate_capping()
         await collector.bmc_connect()
         await runner.collect_system_information()
         logger.info("Launching collector")
