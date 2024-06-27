@@ -184,7 +184,7 @@ class RedfishBMC(BMC):
         logger.debug('Activating capping')
         motherboard = await self.motherboard
         power_endpoint = f'{self.redfish_root}/Chassis/{motherboard}/Power/Actions/LimitTrigger'
-        cap_dict = {f'PowerLimitTrigger': {operation}}
+        cap_dict = {'PowerLimitTrigger': f'{operation}'}
         logger.debug(f'Connecting to {power_endpoint}')
         logger.debug(f'Patch data: {json.dumps(cap_dict, sort_keys=True, indent=2)}')
         headers = {
