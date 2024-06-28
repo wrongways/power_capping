@@ -164,12 +164,13 @@ class RedfishBMC(BMC):
             # get the cap_level etag
             async with session.get(power_endpoint, headers=headers, ssl=False) as r:
                 if not r.ok:
-                    msg = f'''current_cap_level(): Failed to get cap level:
+                    msg = f'''set_cap_level(): Failed to get etag:
                             Response headers: {r.headers}
                             Response body: {r.text()}
                             '''
                     logger.error(msg)
                     raise RuntimeError(msg)
+
                 _ = await r.text()
                 etag = r.headers.get('etag')
                 logger.debug(f'cap_level etag: {etag}')
