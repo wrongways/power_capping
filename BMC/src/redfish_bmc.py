@@ -161,9 +161,10 @@ class RedfishBMC(BMC):
         async with aiohttp.ClientSession() as session:
             async with session.patch(power_endpoint, headers=headers, json=cap_dict, ssl=False) as r:
                 response = await r.text()
+                logger.debug(f'set_cap_level headers: {r.headers}')
                 if not r.ok:
                     raise RuntimeError(
-                            f'Failed to set cap level: {r.headers} {response}'
+                            f'Failed to set cap level: {r.headers}\n{response}'
                     )
                 logger.debug(f'set_cap_level Status: {r.status}\n\t{response=}')
 
