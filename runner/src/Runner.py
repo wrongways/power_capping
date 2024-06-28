@@ -10,7 +10,7 @@ import logging
 import re
 import sqlite3
 import threading
-from datetime import date, datetime, UTC
+from datetime import date, datetime, timedelta, UTC
 from enum import Flag
 
 import aiohttp
@@ -38,6 +38,7 @@ class Runner:
     def __init__(self, bmc_hostname, bmc_username, bmc_password, bmc_type, agent_url, db_path, ipmitool_path=None):
         # Ensure that agent url starts with http
         self.test_id = None
+        self.previous_cap_level = None
         self.agent_url = agent_url if agent_url.startswith('http') else f'http://{agent_url}'
         self.db_path = db_path
         self.create_db_tables()
@@ -116,6 +117,7 @@ class Runner:
         warmup_seconds = config.TestConfig.warmup_seconds
         per_step_runtime_seconds = config.TestConfig.per_step_runtime_seconds
         inter_step_pause_seconds = config.TestConfig.inter_step_pause_seconds
+        self.previous_cap_level = None
 
         assert n_steps > 0
 
@@ -258,12 +260,26 @@ class Runner:
             db.execute(sql, data)
 
     def log_cap_level(self, cap_level):
-        """Insert a timestamped change into the capping_commands table."""
+        """Insert a timestamped change into the capping_commands table.
+
+        To reflect the cap level on a plot, log the previous cap level at 1ms
+        earlier than the new cap level
+        """
+
         sql = 'insert into capping_commands(timestamp, cap_level) values(?, ?);'
-        data = (datetime.now(UTC), cap_level)
+        now = datetime.now(UTC)
         with sqlite3.connect(self.db_path, check_same_thread=False) as db:
+            # If there was an earlier cap level recorded log it as ending just
+            # before setting the new level
+            if self.previous_cap_level is not None:
+                just_before_now = now - timedelta(milliseconds=1)
+                data = (just_before_now, self.previous_cap_level)
+                db.execute(sql, data)
+
+            data = (now, cap_level)
             db.execute(sql, data)
 
+        self.previous_cap_level = cap_level
 
 if __name__ == "__main__":
     async def main():
