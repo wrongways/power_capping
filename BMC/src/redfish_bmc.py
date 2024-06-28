@@ -129,7 +129,6 @@ class RedfishBMC(BMC):
         headers = {'X-Auth-Token': self.token}
         async with aiohttp.ClientSession() as session:
             async with session.get(power_endpoint, headers=headers, ssl=False) as r:
-
                 if not r.ok:
                     msg = f'''current_cap_level(): Failed to get cap level:
                             Response headers: {r.headers}
@@ -148,26 +147,8 @@ class RedfishBMC(BMC):
                 logger.warning(f'current_cap_level received empty body, returning "0". HTTP Status: {r.status}')
                 return 0
 
-    async def get_cap_level_etag(self) -> int | None:
-        logger.debug(f'get_cap_level_etag()')
-        motherboard = await self.motherboard
-        power_endpoint = f'{self.redfish_root}/Chassis/{motherboard}/Power'
-        logger.debug(f'Connecting to {power_endpoint}')
-        headers = {'X-Auth-Token': self.token}
-        async with aiohttp.ClientSession() as session:
-            async with session.get(power_endpoint, headers=headers, ssl=False) as r:
-                if not r.ok:
-                    msg = f'''current_cap_level(): Failed to get cap level:
-                            Response headers: {r.headers}
-                            Response body: {r.text()}
-                            '''
-                    logger.error(msg)
-                    raise RuntimeError(msg)
-
-        return r.headers.get('etag')
-
     async def set_cap_level(self, new_cap_level: int):
-        logger.debug(f'Setting cap level to {new_cap_level}')
+        logger.debug(f'set_cap_level({new_cap_level})')
         motherboard = await self.motherboard
         power_endpoint = f'{self.redfish_root}/Chassis/{motherboard}/Power'
         cap_dict = {
@@ -180,6 +161,20 @@ class RedfishBMC(BMC):
             'If-Match': '*'
         }
         async with aiohttp.ClientSession() as session:
+            # get the cap_level etag
+            async with session.get(power_endpoint, headers=headers, ssl=False) as r:
+                if not r.ok:
+                    msg = f'''current_cap_level(): Failed to get cap level:
+                            Response headers: {r.headers}
+                            Response body: {r.text()}
+                            '''
+                    logger.error(msg)
+                    raise RuntimeError(msg)
+
+                etag = r.headers.get('etag')
+                logger.debug(f'cap_level etag: {etag}')
+                headers['If-Match'] = etag
+
             async with session.patch(power_endpoint, headers=headers, json=cap_dict, ssl=False) as r:
                 response = await r.text()
                 logger.debug(f'set_cap_level headers: {r.headers}')
