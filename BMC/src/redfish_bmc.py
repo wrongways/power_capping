@@ -122,7 +122,7 @@ class RedfishBMC(BMC):
 
     @property
     async def current_cap_level(self) -> int | None:
-        print(f'Getting cap level')
+        logger.debug(f'Getting cap level')
         motherboard = await self.motherboard
         power_endpoint = f'{self.redfish_root}/Chassis/{motherboard}/Power'
         logger.debug(f'Connecting to {power_endpoint}')
@@ -147,6 +147,24 @@ class RedfishBMC(BMC):
 
                 logger.warning(f'current_cap_level received empty body, returning "0". HTTP Status: {r.status}')
                 return 0
+
+    async def get_cap_level_etag(self) -> int | None:
+        logger.debug(f'get_cap_level_etag()')
+        motherboard = await self.motherboard
+        power_endpoint = f'{self.redfish_root}/Chassis/{motherboard}/Power'
+        logger.debug(f'Connecting to {power_endpoint}')
+        headers = {'X-Auth-Token': self.token}
+        async with aiohttp.ClientSession() as session:
+            async with session.get(power_endpoint, headers=headers, ssl=False) as r:
+                if not r.ok:
+                    msg = f'''current_cap_level(): Failed to get cap level:
+                            Response headers: {r.headers}
+                            Response body: {r.text()}
+                            '''
+                    logger.error(msg)
+                    raise RuntimeError(msg)
+
+        return r.headers.get('etag')
 
     async def set_cap_level(self, new_cap_level: int):
         logger.debug(f'Setting cap level to {new_cap_level}')
