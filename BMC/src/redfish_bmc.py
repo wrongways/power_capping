@@ -18,6 +18,7 @@ class RedfishBMC(BMC):
     def __init__(self, bmc_hostname: str, bmc_username: str, bmc_password: str):
         super().__init__(bmc_hostname, bmc_username, bmc_password)
         self.token = ''
+        self.etag = None
         self.session_id = None
         self._chassis = None
         self.redfish_root = f'https://{bmc_hostname}{REDFISH_ROOT}'
@@ -33,6 +34,8 @@ class RedfishBMC(BMC):
             # headers = {'content-type': 'application/json'}
             async with session.post(session_endpoint, json=credentials, ssl=False) as r:
                 json_body = await r.json()
+                self.etag = r.headers.get('etag')
+                logger.debug(f'Session etag: {self.etag}')
                 logger.debug(json.dumps(json_body, sort_keys=True, indent=2))
                 logger.debug(await r.text())
                 if not (200 <= r.status < 300):
