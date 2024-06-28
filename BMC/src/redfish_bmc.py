@@ -170,10 +170,11 @@ class RedfishBMC(BMC):
                             '''
                     logger.error(msg)
                     raise RuntimeError(msg)
-
+                _ = await r.text()
                 etag = r.headers.get('etag')
                 logger.debug(f'cap_level etag: {etag}')
-                headers['If-Match'] = etag
+                if etag is not None:
+                    headers['If-Match'] = etag
 
             async with session.patch(power_endpoint, headers=headers, json=cap_dict, ssl=False) as r:
                 response = await r.text()
