@@ -9,8 +9,8 @@ def parse_args():
     parser.add_argument('-H', '--bmc_hostname', required=True, help='BMC hostname/ip')
     parser.add_argument('-U', '--bmc_username', required=True, help='BMC username')
     parser.add_argument('-P', '--bmc_password', required=True, help='BMC password')
-    parser.add_argument('-t', '--bmc_type', required=True, choices=['ipmi', 'redfish'], help='BMC password')
-    parser.add_argument('-a', '--agent_url', required=True,
+    parser.add_argument('-t', '--bmc_type', required=False, choices=['ipmi', 'redfish'], help='BMC password')
+    parser.add_argument('-a', '--agent_url', required=False,
                         help='hostname and port number of the agent running on the system under test')
     parser.add_argument('-d', '--db_path', metavar='<PATH TO DB FILE>', required=False,
                         help='''Path to the sqlite3 db on the local system holding the collected statistics. \
@@ -34,25 +34,14 @@ def parse_args():
     parser.add_argument('--load_delta', type=int, default=0, choices=range(101),
                         help='The change in firestarter load between each test run.')
 
-    parser.add_argument('--min_threads', type=int, default=0,
-                        help='Minimum firestarter threads for test run')
-
-    parser.add_argument('--max_threads', type=int, default=100,
-                        help='Maximum firestarter threads for test run')
-
-    parser.add_argument('--threads_delta', type=int, default=0,
-                        help='The change in firestarter threads between each test run.')
-
-    parser.add_argument('--cap_min', type=int, required=True,
+    parser.add_argument('--cap_min', type=int, required=False,
                         help='Minimum power cap setting')
 
-    parser.add_argument('--cap_max', type=int, required=True,
+    parser.add_argument('--cap_max', type=int, required=False,
                         help='Maximum power cap setting')
 
-    parser.add_argument('--cap_delta', type=int, required=True,
+    parser.add_argument('--cap_delta', type=int, required=False,
                         help='The change in cap settings for each test run. \
                         The test runner will generate a run for each step between min and max')
-
-    parser.add_argument('--cap_direction', choices=['up', 'down', 'updown', 'both'])
 
     return parser.parse_args()
