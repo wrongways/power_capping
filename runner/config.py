@@ -14,5 +14,5 @@ runner_config = {
     'load_delta': 5,
     'cap_min': 350,
     'cap_max': 600,
-    'cap_delta': 400,
+    'cap_delta': 125,
 }

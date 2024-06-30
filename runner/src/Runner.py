@@ -11,6 +11,7 @@ import re
 import sqlite3
 import threading
 from datetime import date, datetime, timedelta, UTC
+from math import ceil
 
 import aiohttp
 
@@ -107,6 +108,7 @@ class Runner:
                        ):
         """Run a given test configuration"""
 
+        logger.debug(f'run_test({cap_from}, {cap_to}, {n_steps}, {load_pct}, {pause_load_between_cap_settings}')
         warmup_seconds = runner_config['warmup_seconds']
         per_step_runtime_seconds = runner_config['per_step_runtime_seconds']
         inter_step_pause_seconds = runner_config['inter_step_pause_seconds']
@@ -166,7 +168,7 @@ class Runner:
         assert load_delta > 0 or min_load == max_load
         assert load_delta <= (max_load - min_load)
 
-        n_steps = (cap_max - cap_min) // cap_delta
+        n_steps = int(ceil((cap_max - cap_min) / cap_delta))
 
         # If load_delta = 0, then min_load == max_load
         # Bump the load_delta to 1 to ensure loop exit
