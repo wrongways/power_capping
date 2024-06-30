@@ -265,7 +265,8 @@ class Runner:
 
 if __name__ == "__main__":
     async def main():
-        args = runner_config | vars(parse_args())
+        cli_args = {k: v for k, v in vars(parse_args()) if v is not None}
+        args = runner_config | cli_args
         if args.get('db_path') is None:
             agent = args.get('agent_url').lstrip('http://').rstrip('/')
             agent = re.sub(r':\d+', '', agent)
