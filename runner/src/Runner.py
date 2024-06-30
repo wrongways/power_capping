@@ -11,21 +11,15 @@ import re
 import sqlite3
 import threading
 from datetime import date, datetime, timedelta, UTC
-from enum import Flag
 
 import aiohttp
 
 from BMC import IpmiBMC, RedfishBMC
 from cli import parse_args
 from collector import Collector
-from runner import config
+from runner.config import runner_config
 
 HTTP_202_ACCEPTED = 202
-
-
-class UpDown(Flag):
-    up = 1
-    down = 2
 
 
 logging.basicConfig(level='DEBUG')
@@ -93,13 +87,12 @@ class Runner:
                 else:
                     print(f"Failed to get system information. Status code: {resp.status}\n{resp}")
 
-    async def launch_firestarter(self, load_pct, n_threads, runtime_secs):
+    async def launch_firestarter(self, load_pct, runtime_secs):
         """Request that the agent run firestarter with the provided parameters."""
 
         firestarter_endpoint = f'{self.agent_url}/firestarter'
         firestarter_args = {
             'load_pct': load_pct,
-            'n_threads': n_threads,
             'runtime_secs': runtime_secs,
         }
 
@@ -109,14 +102,14 @@ class Runner:
                 if resp.status != HTTP_202_ACCEPTED:
                     logger.error(f"Failed to launch firestarter: {resp.status} - {await resp.json()}")
 
-    async def run_test(self, cap_from, cap_to, n_steps=1, load_pct=100, n_threads=0,
+    async def run_test(self, cap_from, cap_to, n_steps=1, load_pct=100,
                        pause_load_between_cap_settings=False
                        ):
         """Run a given test configuration"""
 
-        warmup_seconds = config.TestConfig.warmup_seconds
-        per_step_runtime_seconds = config.TestConfig.per_step_runtime_seconds
-        inter_step_pause_seconds = config.TestConfig.inter_step_pause_seconds
+        warmup_seconds = runner_config['warmup_seconds']
+        per_step_runtime_seconds = runner_config['per_step_runtime_seconds']
+        inter_step_pause_seconds = runner_config['inter_step_pause_seconds']
         self.previous_cap_level = None
 
         assert n_steps > 0
@@ -137,17 +130,17 @@ class Runner:
 
             cap_level = cap_from
             for _ in range(n_steps):
-                await self.launch_firestarter(load_pct, n_threads, firestarter_runtime)
+                await self.launch_firestarter(load_pct, firestarter_runtime)
                 await asyncio.sleep(firestarter_runtime + inter_step_pause_seconds)
                 cap_level -= cap_delta
                 self.log_cap_level(cap_level)
                 await self.bmc.set_cap_level(cap_level)
 
         else:
-            cap_level = config.TestConfig.uncapped_power
+            cap_level = runner_config['uncapped_power']
             self.log_cap_level(cap_level)
             await self.bmc.set_cap_level(cap_level)
-            await self.launch_firestarter(load_pct, n_threads, firestarter_runtime)
+            await self.launch_firestarter(load_pct, firestarter_runtime)
             await asyncio.sleep(warmup_seconds)
             cap_level = cap_from
             for _ in range(n_steps):
@@ -159,46 +152,35 @@ class Runner:
             await asyncio.sleep(inter_step_pause_seconds)
 
         end_time = datetime.now(UTC)
-        self.log_test_run(start_time, end_time, cap_from, cap_to, n_steps, load_pct, n_threads,
+        self.log_test_run(start_time, end_time, cap_from, cap_to, n_steps, load_pct,
                           pause_load_between_cap_settings)
 
     async def run_campaign(self,
                            min_load, max_load, load_delta,
-                           min_threads, max_threads, threads_delta,
                            cap_min, cap_max, cap_delta, cap_direction
                            ):
         """Generate the combinations of test configurations and calls run_test for each"""
 
         assert min_load <= max_load
-        assert min_threads <= max_threads
         assert cap_min < cap_max and cap_delta > 0
         assert load_delta > 0 or min_load == max_load
-        assert threads_delta > 0 or min_threads == max_threads
         assert load_delta <= (max_load - min_load)
-        assert threads_delta <= (max_threads - min_threads)
 
         n_steps = (cap_max - cap_min) // cap_delta
-        # TODO: Handle case where min=max and load_delta=0
 
-        if load_delta > 0:
-            for load in range(min_load, max_load + 1, load_delta):
-                for pause in (True, False):
-                    if cap_direction & UpDown.up:
-                        await self.run_test(cap_min, cap_max, n_steps, load_pct=load, n_threads=0,
-                                            pause_load_between_cap_settings=pause)
-                    if cap_direction & UpDown.down:
-                        await self.run_test(cap_max, cap_min, n_steps, load_pct=load, n_threads=0,
-                                            pause_load_between_cap_settings=pause)
+        # If load_delta = 0, then min_load == max_load
+        # Bump the load_delta to 1 to ensure loop exit
+        load_delta = max(1, load_delta)
 
-        if threads_delta > 0:
-            for n_threads in range(min_threads, max_threads + 1, threads_delta):
-                for pause in (True, False):
-                    if cap_direction & UpDown.up:
-                        await self.run_test(cap_min, cap_max, n_steps, load_pct=100, n_threads=n_threads,
-                                            pause_load_between_cap_settings=pause)
-                    if cap_direction & UpDown.down:
-                        await self.run_test(cap_max, cap_min, n_steps, load_pct=100, n_threads=n_threads,
-                                            pause_load_between_cap_settings=pause)
+        for load in range(min_load, max_load + 1, load_delta):
+            for pause in (True, False):
+                # Increase setting upward
+                await self.run_test(cap_min, cap_max, n_steps, load_pct=load,
+                                    pause_load_between_cap_settings=pause)
+
+                # Run setting cap down
+                await self.run_test(cap_max, cap_min, n_steps, load_pct=load,
+                                    pause_load_between_cap_settings=pause)
 
     def create_db_tables(self):
         """Creates the capping and test tables in the db."""
@@ -212,7 +194,6 @@ class Runner:
             cap_to integer not null,
             n_steps integer not null,
             load_pct integer not null, 
-            n_threads integer not null,
             pause_load_between_cap_settings integer); -- sqlite does not have boolean type
             '''
 
@@ -246,16 +227,16 @@ class Runner:
             db.execute(test_table_sql)
             db.execute(system_info_table_sql)
 
-    def log_test_run(self, start_time, end_time, cap_from, cap_to, n_steps, load_pct, n_threads,
+    def log_test_run(self, start_time, end_time, cap_from, cap_to, n_steps, load_pct,
                      pause_load_between_cap_settings
                      ):
         """Insert details of single test run into the tests table."""
 
         sql = '''\
-        insert into tests(start_time, end_time, cap_from, cap_to, n_steps, load_pct, n_threads, 
+        insert into tests(start_time, end_time, cap_from, cap_to, n_steps, load_pct, 
         pause_load_between_cap_settings)
         values(?, ?, ?, ?, ?, ?, ?, ?);'''
-        data = (start_time, end_time, cap_from, cap_to, n_steps, load_pct, n_threads, pause_load_between_cap_settings)
+        data = (start_time, end_time, cap_from, cap_to, n_steps, load_pct, pause_load_between_cap_settings)
         with sqlite3.connect(self.db_path, check_same_thread=False) as db:
             db.execute(sql, data)
 
@@ -281,9 +262,10 @@ class Runner:
 
         self.previous_cap_level = cap_level
 
+
 if __name__ == "__main__":
     async def main():
-        args = vars(parse_args())
+        args = runner_config | vars(parse_args())
         if args.get('db_path') is None:
             agent = args.get('agent_url').lstrip('http://').rstrip('/')
             agent = re.sub(r':\d+', '', agent)
@@ -307,20 +289,18 @@ if __name__ == "__main__":
         collect_thread.start()
         logger.info("Starting campaign")
 
-        await runner.run_campaign(min_load=90, max_load=100, load_delta=5,
-                                  min_threads=0, max_threads=0, threads_delta=0,
-                                  cap_min=400, cap_max=1000, cap_delta=100, cap_direction=UpDown.down | UpDown.up)
-
-        await runner.run_campaign(min_load=90, max_load=100, load_delta=5,
-                                  # min_threads=192, max_threads=224, threads_delta=8,
-                                  min_threads=0, max_threads=0, threads_delta=0,
-                                  cap_min=400, cap_max=1000, cap_delta=600, cap_direction=UpDown.down | UpDown.up)
+        await runner.run_campaign(**args)
 
         logger.info("Run test ended, halting collector")
-        await asyncio.sleep(5)
+
+        # Log the final cap level
+        runner.log_cap_level(runner.previous_cap_level)
+
+        # Wait a while to ensure the collector has samples beyond the
+        # end_timestamp of the tests table.
+        await asyncio.sleep(3)
         collector.end_collect()
         collect_thread.join()
         logger.info("Collector ended")
-
 
     asyncio.run(main())
