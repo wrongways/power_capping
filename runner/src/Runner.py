@@ -237,7 +237,7 @@ class Runner:
         sql = '''\
         insert into tests(start_time, end_time, cap_from, cap_to, n_steps, load_pct, 
         pause_load_between_cap_settings)
-        values(?, ?, ?, ?, ?, ?, ?, ?);'''
+        values(?, ?, ?, ?, ?, ?, ?);'''
         data = (start_time, end_time, cap_from, cap_to, n_steps, load_pct, pause_load_between_cap_settings)
         with sqlite3.connect(self.db_path, check_same_thread=False) as db:
             db.execute(sql, data)
