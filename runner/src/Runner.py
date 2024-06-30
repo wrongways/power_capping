@@ -157,7 +157,7 @@ class Runner:
 
     async def run_campaign(self,
                            min_load, max_load, load_delta,
-                           cap_min, cap_max, cap_delta, cap_direction
+                           cap_min, cap_max, cap_delta
                            ):
         """Generate the combinations of test configurations and calls run_test for each"""
 
@@ -277,7 +277,9 @@ if __name__ == "__main__":
         logger.info(f"Results database file: {args.get('db_path')}")
         runner_keys = 'bmc_hostname bmc_username bmc_password bmc_type agent_url db_path ipmitool_path'.split()
         runner_args = {k: args.get(k) for k in runner_keys}
-        print(runner_args)
+        campaign_keys = 'min_load max_load load_delta cap_min cap_max cap_delta'
+        campaign_args = {k: args.get(k) for k in campaign_keys}
+
         runner = Runner(**runner_args)
         collector = Collector(**runner_args)
         await runner.bmc_connect()
@@ -289,8 +291,7 @@ if __name__ == "__main__":
         collect_thread.start()
         logger.info("Starting campaign")
 
-        await runner.run_campaign(**args)
-
+        await runner.run_campaign(**campaign_args)
         logger.info("Run test ended, halting collector")
 
         # Log the final cap level
