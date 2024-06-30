@@ -38,7 +38,7 @@ def test_duration(db):
     datetime.fromisoformat(end_time) - datetime.fromisoformat(start_time)
 
 
-def load_plot_data(cap_up_down, with_pause, stepped, load_pct):
+def load_plot_data(cap_up_down, with_pause, load_pct):
     """Loads plot data from sqlite3 database.
 
     @param cap_up_down: the capping direction to load, this is either '>' or '<'
@@ -51,8 +51,8 @@ def load_plot_data(cap_up_down, with_pause, stepped, load_pct):
     tests_sql = (f"select start_time, end_time from tests where "
                  f"cap_from {cap_up_down} cap_to and "
                  f"pause_load_between_cap_settings = {with_pause} and "
-                 f"load_pct = {load_pct} and "
-                 f"n_steps {'>' if stepped else '='} 1 "
+                 f"load_pct = {load_pct} "
+                 # f"n_steps {'>' if stepped else '='} 1 "
                  "order by start_time;")
 
     print(tests_sql)
@@ -61,8 +61,9 @@ def load_plot_data(cap_up_down, with_pause, stepped, load_pct):
     capping_sql_root = "select timestamp, cap_level from capping_commands where timestamp "
 
     with sqlite3.connect(db_path, uri=True) as db:
+        assert db is not None
         start_time, end_time = db.execute(tests_sql).fetchone()
-        print("Start time:", start_time)
+        print(f"Start time:{start_time}")
 
         interval = f"between '{start_time}' and '{end_time}'"
         bmc_sql = bmc_sql_root + interval
@@ -110,9 +111,9 @@ def load_plot_data(cap_up_down, with_pause, stepped, load_pct):
     return pd.DataFrame(bmc_power + bmc_cap_level + rapl_power + capping_orders)
 
 
-def make_graph(cap_up_down, pause, stepped, load_pct):
+def make_graph(cap_up_down, pause, load_pct):
     """Create plotly express graph."""
-    graph_df = load_plot_data(cap_up_down, pause, stepped, load_pct)
+    graph_df = load_plot_data(cap_up_down, pause, load_pct)
 
     print(graph_df)
 
@@ -159,18 +160,18 @@ def create_selector_buttons():
                 ],
                 value=False,
         ),
-        dbc.Label(html_for='stepped', children='Cap stepped or one-shot'),
-        dbc.RadioItems(
-                id='stepped',
-                className='btn-group',
-                inputClassName='btn-check',
-                labelClassName='btn btn-outline-primary',
-                options=[
-                    {'label': 'Stepped', 'value': True},
-                    {'label': 'One shot ', 'value': False}
-                ],
-                value=False,
-        ),
+        # dbc.Label(html_for='stepped', children='Cap stepped or one-shot'),
+        # dbc.RadioItems(
+        #         id='stepped',
+        #         className='btn-group',
+        #         inputClassName='btn-check',
+        #         labelClassName='btn btn-outline-primary',
+        #         options=[
+        #             {'label': 'Stepped', 'value': True},
+        #             {'label': 'One shot ', 'value': False}
+        #         ],
+        #         value=False,
+        # ),
 
         dbc.Label(html_for='load_pct', children='Load percent'),
         dbc.RadioItems(
@@ -232,6 +233,7 @@ if __name__ == '__main__':
     args = parse_args()
     print(args)
     db_path = f'file:{args.db_path}?mode=ro'
+    print(f'{db_path=}')
 
     threshold_ratio = 1.2
     threshold_pct = int((threshold_ratio - 1) * 100)
@@ -250,10 +252,10 @@ if __name__ == '__main__':
             Output(component_id='plot', component_property='figure'),
             Input(component_id='cap_up_down', component_property='value'),
             Input(component_id='pause', component_property='value'),
-            Input(component_id='stepped', component_property='value'),
+            # Input(component_id='stepped', component_property='value'),
             Input(component_id='load_pct', component_property='value')
     )
-    def get_results(cap_up_down, pause, stepped, load_pct):
+    def get_results(cap_up_down, pause, load_pct):
         """The plotly callback for the graph.
 
         @param cap_up_down: direction of capping operation '<' or '>'
@@ -266,7 +268,7 @@ if __name__ == '__main__':
         hostname, os_name, cpus = get_system_info()
         system_info = f'System: {hostname} ({os_name}): {cpus} CPUs'
 
-        graph = make_graph(cap_up_down, pause, stepped, load_pct)
+        graph = make_graph(cap_up_down, pause, load_pct)
         return system_info, graph
 
 

@@ -12,7 +12,7 @@ runner_config = {
     'min_load': 90,
     'max_load': 100,
     'load_delta': 5,
-    'cap_min': 350,
-    'cap_max': 600,
-    'cap_delta': 125,
+    'cap_min': 340,
+    'cap_max': 1000,
+    'cap_delta': 110,
 }

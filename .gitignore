@@ -10,3 +10,4 @@ pyvenv.cfg
 analyzer/data/
 share/
 etc/
+runner/config.py
