@@ -1,3 +1,6 @@
+"""
+The REST server that runs on the system under test.
+"""
 import argparse
 import json
 import logging
