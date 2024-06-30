@@ -17,7 +17,7 @@ import aiohttp
 from BMC import IpmiBMC, RedfishBMC
 from cli import parse_args
 from collector import Collector
-from runner.config import runner_config
+from runner import config
 
 HTTP_202_ACCEPTED = 202
 
@@ -107,9 +107,9 @@ class Runner:
                        ):
         """Run a given test configuration"""
 
-        warmup_seconds = runner_config['warmup_seconds']
-        per_step_runtime_seconds = runner_config['per_step_runtime_seconds']
-        inter_step_pause_seconds = runner_config['inter_step_pause_seconds']
+        warmup_seconds = config.runner_config['warmup_seconds']
+        per_step_runtime_seconds = config.runner_config['per_step_runtime_seconds']
+        inter_step_pause_seconds = config.runner_config['inter_step_pause_seconds']
         self.previous_cap_level = None
 
         assert n_steps > 0
@@ -137,7 +137,7 @@ class Runner:
                 await self.bmc.set_cap_level(cap_level)
 
         else:
-            cap_level = runner_config['uncapped_power']
+            cap_level = config.runner_config['uncapped_power']
             self.log_cap_level(cap_level)
             await self.bmc.set_cap_level(cap_level)
             await self.launch_firestarter(load_pct, firestarter_runtime)
@@ -265,7 +265,7 @@ class Runner:
 
 if __name__ == "__main__":
     async def main():
-        args = runner_config | vars(parse_args())
+        args = config.runner_config | vars(parse_args())
         if args.get('db_path') is None:
             agent = args.get('agent_url').lstrip('http://').rstrip('/')
             agent = re.sub(r':\d+', '', agent)
