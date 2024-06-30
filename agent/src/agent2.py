@@ -162,7 +162,7 @@ def parse_cli():
     )
     parser.add_argument(
             '-f', '--firestarter',
-            default='/home_nfs/wainj/local/bin/firestarter',
+            default='/tmp/FIRESTARTER',
             help='Fully qualified path to the firestarter load generation programme'
     )
 
