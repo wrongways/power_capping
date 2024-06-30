@@ -1,4 +1,4 @@
-runner_config: {
+runner_config = {
     'bmc_type': None,
     'agent_url': None,
     'db_path': None,
