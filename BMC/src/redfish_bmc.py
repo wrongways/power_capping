@@ -147,7 +147,7 @@ class RedfishBMC(BMC):
                 logger.warning(f'current_cap_level received empty body, returning "0". HTTP Status: {r.status}')
                 return 0
 
-    async def set_cap_level(self, new_cap_level: int):
+    async def set_cap_level(self, new_cap_level: int | None):
         logger.debug(f'set_cap_level({new_cap_level})')
         motherboard = await self.motherboard
         power_endpoint = f'{self.redfish_root}/Chassis/{motherboard}/Power'
@@ -171,7 +171,7 @@ class RedfishBMC(BMC):
                     logger.error(msg)
                     raise RuntimeError(msg)
 
-                _ = await r.text()
+                await r.text()
                 etag = r.headers.get('etag')
                 logger.debug(f'cap_level etag: {etag}')
                 if etag is not None:
@@ -228,7 +228,12 @@ class RedfishBMC(BMC):
         await self.do_set_capping('Activate')
 
     async def deactivate_capping(self):
-        await self.do_set_capping('Deactivate')
+        try:
+            await self.set_cap_level(None)
+            await self.do_set_capping('Deactivate')
+
+        except RuntimeError:
+            pass
 
 
 if __name__ == '__main__':
