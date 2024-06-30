@@ -277,7 +277,7 @@ if __name__ == "__main__":
         logger.info(f"Results database file: {args.get('db_path')}")
         runner_keys = 'bmc_hostname bmc_username bmc_password bmc_type agent_url db_path ipmitool_path'.split()
         runner_args = {k: args.get(k) for k in runner_keys}
-        campaign_keys = 'min_load max_load load_delta cap_min cap_max cap_delta'
+        campaign_keys = 'min_load max_load load_delta cap_min cap_max cap_delta'.split()
         campaign_args = {k: args.get(k) for k in campaign_keys}
 
         runner = Runner(**runner_args)
